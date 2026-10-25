@@ -225,25 +225,74 @@ function panelLook() {
   ];
 }
 
-const PRESETS: { name: string; colors: Partial<Colors>; style: Partial<Studio['style']> }[] = [
-  { name: 'Origineel', colors: { ...DEFAULT_COLORS }, style: { ...ORIGINAL_STYLE } },
-  { name: 'Nacht', colors: { body: '#1d2229', eyes: '#eaf3ff', outline: '#323b46', mouth: '#eaf3ff', blush: '#ff6f91', accent: '#7cc4ff' }, style: { shine: 0, eyeRoundness: 1, roundness: .3 } },
-  { name: 'Munt', colors: { body: '#c9f2e1', eyes: '#0f3b2e', outline: '#9fd9c2', mouth: '#0f3b2e', blush: '#ff9fb0', accent: '#2fb37f' }, style: { roundness: .55, shine: .5, mouth: true } },
-  { name: 'Perzik', colors: { body: '#ffd9c4', eyes: '#3a1d12', outline: '#f2b89a', mouth: '#3a1d12', blush: '#ff7b8f', accent: '#ff7b5a' }, style: { roundness: 1, shine: .7, mouth: true, blush: 'always' } },
-  { name: 'Robot', colors: { body: '#d7dde3', eyes: '#1b8cff', outline: '#8a97a3', mouth: '#1b8cff', blush: '#ff5c7a', accent: '#1b8cff' }, style: { roundness: .06, eyeRoundness: .12, eyeWidth: 42, eyeScale: .7, outlineWidth: 3, shine: 0 } },
-  { name: 'Spookje', colors: { body: '#f4f0ff', eyes: '#3b2a6b', outline: '#d9cff7', mouth: '#3b2a6b', blush: '#ffa3c4', accent: '#9b7bff' }, style: { roundness: 1, eyeScale: 1.1, eyeWidth: 30, shine: .9, mouth: true } },
-  { name: 'Citroen', colors: { body: '#fff1a6', eyes: '#2b2410', outline: '#e8d46a', mouth: '#2b2410', blush: '#ff9a7a', accent: '#ff8a00' }, style: { roundness: .38, eyeRoundness: .8, shine: .4 } },
-  { name: 'Kool', colors: { body: '#101214', eyes: '#ffffff', outline: '#101214', mouth: '#ffffff', blush: '#ff5c7a', accent: '#ff5c7a' }, style: { roundness: .2, outlineWidth: 0, shine: 0 } },
+type Preset = { name: string; group: string; colors: Partial<Colors>; style: Partial<Studio['style']> };
+/** body, eyes, outline, accent, blush (mouth follows the eyes) */
+const pc = (body: string, eyes: string, outline: string, accent: string, blush = '#ff8fa3'): Partial<Colors> => ({ body, eyes, outline, mouth: eyes, accent, blush });
+const P = (group: string, name: string, colors: Partial<Colors>, style: Partial<Studio['style']> = {}): Preset => ({ group, name, colors, style });
+const PRESETS: Preset[] = [
+  // Klassiek: Dashy zoals hij bedoeld is, met kleine variaties
+  P('Klassiek', 'Origineel', { ...DEFAULT_COLORS }, { ...ORIGINAL_STYLE }),
+  P('Klassiek', 'Rond', { ...DEFAULT_COLORS }, { roundness: 1 }),
+  P('Klassiek', 'Zacht', { ...DEFAULT_COLORS }, { roundness: .5, shine: .5, mouth: true }),
+  P('Klassiek', 'Scherp', { ...DEFAULT_COLORS }, { roundness: 0, eyeRoundness: .2, outlineWidth: 2 }),
+  P('Klassiek', 'Kool', pc('#101214', '#ffffff', '#101214', '#ff5c7a', '#ff5c7a'), { outlineWidth: 0 }),
+  P('Klassiek', 'Papier', pc('#f6f1e7', '#2a2622', '#d8cfbf', '#c2553a', '#e8a08f'), { roundness: .12, outlineWidth: 1.5 }),
+  // Pastel
+  P('Pastel', 'Munt', pc('#c9f2e1', '#0f3b2e', '#9fd9c2', '#2fb37f', '#ff9fb0'), { roundness: .55, shine: .5, mouth: true }),
+  P('Pastel', 'Perzik', pc('#ffd9c4', '#3a1d12', '#f2b89a', '#ff7b5a', '#ff7b8f'), { roundness: 1, shine: .7, mouth: true, blush: 'always' }),
+  P('Pastel', 'Lavendel', pc('#e6dcff', '#2e2257', '#cbbcf5', '#8b6cff', '#ff9ec7'), { roundness: .6, shine: .6, mouth: true }),
+  P('Pastel', 'Babyblauw', pc('#d4ecff', '#12324f', '#a9d3f5', '#3d9bff', '#ffa0b4'), { roundness: .45, shine: .7, eyeScale: 1 }),
+  P('Pastel', 'Roze wolk', pc('#ffe0ec', '#4a1830', '#f7bfd3', '#ff5c9a', '#ff7fae'), { roundness: 1, shine: .8, mouth: true, blush: 'always' }),
+  P('Pastel', 'Citroen', pc('#fff1a6', '#2b2410', '#e8d46a', '#ff8a00', '#ff9a7a'), { roundness: .38, eyeRoundness: .8, shine: .4 }),
+  P('Pastel', 'Pistache', pc('#e3f3c4', '#26360f', '#c5df97', '#79b82c', '#ffa89a'), { roundness: .5, mouth: true }),
+  P('Pastel', 'Abrikoos', pc('#ffe3c2', '#432510', '#f5c590', '#ff9a3c', '#ff8f80'), { roundness: .7, shine: .5 }),
+  // Donker
+  P('Donker', 'Nacht', pc('#1d2229', '#eaf3ff', '#323b46', '#7cc4ff', '#ff6f91'), { roundness: .3 }),
+  P('Donker', 'Middernacht', pc('#141a33', '#ffd56b', '#273055', '#ffd56b', '#ff7aa2'), { roundness: .5, shine: .3 }),
+  P('Donker', 'Neon', pc('#0e0f1a', '#39ffb4', '#262a44', '#ff3df2', '#ff3df2'), { roundness: .25, eyeRoundness: .5, outlineWidth: 2, shine: 0 }),
+  P('Donker', 'Aubergine', pc('#2b1631', '#ffc4e6', '#43264b', '#ff7ac8', '#ff7ac8'), { roundness: .6, shine: .4, mouth: true }),
+  P('Donker', 'Bos', pc('#16271f', '#d8f5c9', '#284234', '#8fdc6a', '#ff9a8a'), { roundness: .4 }),
+  P('Donker', 'Lava', pc('#211414', '#ff8a3d', '#3a2121', '#ff4d2e', '#ff6a4d'), { roundness: .2, eyeRoundness: .7, shine: .2 }),
+  // Fel
+  P('Fel', 'Tomaat', pc('#ff5a4e', '#ffffff', '#d9443a', '#ffe14d', '#ffb3a8'), { roundness: .5, outlineWidth: 0, mouth: true }),
+  P('Fel', 'Zon', pc('#ffd23f', '#1a1406', '#e8b820', '#ff6b00', '#ff8a5c'), { roundness: 1, shine: .5, mouth: true }),
+  P('Fel', 'Kobalt', pc('#2457ff', '#ffffff', '#1a3fc2', '#ffd400', '#ff9ac0'), { roundness: .3, outlineWidth: 0 }),
+  P('Fel', 'Gras', pc('#3ccf6e', '#0b2a16', '#2aa957', '#fff35c', '#ffb0a0'), { roundness: .55, mouth: true }),
+  P('Fel', 'Snoep', pc('#ff7ad9', '#2a0a24', '#e95bc2', '#7af3ff', '#ffffff'), { roundness: 1, shine: .9, mouth: true, blush: 'always' }),
+  P('Fel', 'Oranje', pc('#ff8a1f', '#20130a', '#e07210', '#ffffff', '#ffc2a0'), { roundness: .25 }),
+  // Natuur
+  P('Natuur', 'Zand', pc('#ecdcbf', '#3b2f1e', '#d4bf98', '#c9782d', '#e99b84'), { roundness: .35, outlineWidth: 1.5 }),
+  P('Natuur', 'Mos', pc('#a9c48a', '#1f2b14', '#8ba86b', '#f2d35b', '#e89a86'), { roundness: .6 }),
+  P('Natuur', 'Oceaan', pc('#5fb7d4', '#06283a', '#469bb8', '#ffffff', '#ff9cab'), { roundness: .5, shine: .6 }),
+  P('Natuur', 'Klei', pc('#d9845f', '#2a120a', '#bd6a47', '#ffe0b8', '#ffb59a'), { roundness: .3, eyeRoundness: .85 }),
+  P('Natuur', 'Steen', pc('#b9bcbf', '#202326', '#9a9ea2', '#5c6f80', '#e3a2a2'), { roundness: .15, outlineWidth: 2, eyeRoundness: .6 }),
+  P('Natuur', 'Sneeuw', pc('#f7fbff', '#334b66', '#dbe7f2', '#8cc4ff', '#ffb8c8'), { roundness: .8, shine: 1, eyeScale: .95 }),
+  // Figuren: vorm en ogen maken het karakter
+  P('Figuren', 'Robot', pc('#d7dde3', '#1b8cff', '#8a97a3', '#1b8cff', '#ff5c7a'), { roundness: .06, eyeRoundness: .12, eyeWidth: 42, eyeScale: .7, outlineWidth: 3 }),
+  P('Figuren', 'Spookje', pc('#f4f0ff', '#3b2a6b', '#d9cff7', '#9b7bff', '#ffa3c4'), { roundness: 1, eyeScale: 1.1, eyeWidth: 30, shine: .9, mouth: true }),
+  P('Figuren', 'Pixel', pc('#9bbc0f', '#0f380f', '#306230', '#0f380f', '#8bac0f'), { roundness: 0, eyeRoundness: 0, eyeWidth: 30, eyeScale: .6, outlineWidth: 4 }),
+  P('Figuren', 'Knuffel', pc('#c79a72', '#24160c', '#a87b55', '#ff8aa0', '#ff9aa8'), { roundness: 1, eyeWidth: 26, eyeScale: .62, eyeSpacing: 30, shine: .8, mouth: true, blush: 'always' }),
+  P('Figuren', 'Uil', pc('#8c6e52', '#fff4c2', '#6f5540', '#ffcf4a', '#ffb08a'), { roundness: .7, eyeWidth: 46, eyeScale: .9, eyeSpacing: 40, eyeRoundness: 1, shine: .4 }),
+  P('Figuren', 'Kikker', pc('#7fd36b', '#10240b', '#5fb34d', '#ff5c7a', '#ff8f9c'), { roundness: .8, eyeWidth: 40, eyeScale: .75, eyeSpacing: 44, shine: .7, mouth: true }),
+  P('Figuren', 'Kaars', pc('#fff8e8', '#3a2a12', '#efe0bf', '#ffb020', '#ffb59a'), { roundness: .2, eyeWidth: 22, eyeScale: 1.25, eyeSpacing: 30 }),
+  P('Figuren', 'Schermpje', pc('#1a1d22', '#7cf9ff', '#3a4049', '#7cf9ff', '#ff7ab8'), { roundness: .14, eyeRoundness: .35, eyeWidth: 38, eyeScale: .55, outlineWidth: 5 }),
+  P('Figuren', 'Mochi', pc('#fdf5f0', '#3d2a24', '#f0dcd2', '#ff9cb5', '#ff9cb5'), { roundness: 1, eyeWidth: 20, eyeScale: .55, eyeSpacing: 28, mouth: true, blush: 'always' }),
+  P('Figuren', 'Bril', pc('#ffffff', '#101214', '#c9c9c4', '#5b8cff', '#ff8fa3'), { roundness: .2, eyeWidth: 44, eyeScale: .58, eyeRoundness: .45, shine: .9 }),
 ];
+const PRESET_GROUPS = [...new Set(PRESETS.map(p => p.group))];
 function applyPreset(p: typeof PRESETS[number]) {
   S.colors = { ...DEFAULT_COLORS, ...p.colors }; S.style = { ...ORIGINAL_STYLE, shadow: S.style.shadow, effects: S.style.effects, ...p.style };
   applyLive(); syncAll(); toast(`Stijl: ${p.name}`);
 }
 function drawPresets() {
-  const host = document.querySelector('.presets'); if (!host) return;
-  if (host.childElementCount) return;
-  PRESETS.forEach((p, i) => host.append(h('button', { class: 'preset', type: 'button', onclick: () => applyPreset(p) },
-    svgFrag(thumbSvg('happy', `pr${i}_`, { style: { ...ORIGINAL_STYLE, ...p.style }, colors: { ...DEFAULT_COLORS, ...p.colors } })), p.name)));
+  const host = document.querySelector('.preset-groups'); if (!host || host.childElementCount) return;
+  let i = 0;
+  for (const g of PRESET_GROUPS) {
+    const grid = h('div', { class: 'presets' });
+    for (const p of PRESETS.filter(x => x.group === g)) grid.append(h('button', { class: 'preset', type: 'button', title: `Stijl ${p.name}`, onclick: () => applyPreset(p) },
+      svgFrag(thumbSvg('happy', `pr${i++}_`, { style: { ...ORIGINAL_STYLE, ...p.style }, colors: { ...DEFAULT_COLORS, ...p.colors } })), p.name));
+    host.append(h('div', { class: 'label group-title', text: g }), grid);
+  }
 }
 function panelColor() {
   const COLOR_LABELS: [keyof Colors, string][] = [['body', 'Lijf'], ['eyes', 'Ogen'], ['outline', 'Omlijning'], ['mouth', 'Mond'], ['blush', 'Blosjes'], ['accent', 'Effecten']];
@@ -253,7 +302,7 @@ function panelColor() {
   };
   const stageId = 'col-stage', stage = h('input', { id: stageId, type: 'color', value: S.stage.color, oninput: () => { S.stage.color = stage.value; paintStage(); persist(); } }) as HTMLInputElement;
   return [
-    sec('Stijlen', h('div', { class: 'presets' }), h('p', { class: 'hint', text: 'Een stijl zet kleuren en vorm in één keer; daarna kun je alles los bijstellen.' })),
+    sec(`Stijlen (${PRESETS.length})`, h('p', { class: 'hint', text: 'Een stijl zet kleuren en vorm in één keer; daarna kun je alles los bijstellen.' }), h('div', { class: 'preset-groups' })),
     sec('Kleuren', h('div', { class: 'swatches' }, ...COLOR_LABELS.map(([k, l]) => swatch(k, l)))),
     sec('Podium', h('label', { class: 'sw', for: stageId }, 'Achtergrond bij "Kleur"', stage)),
   ];

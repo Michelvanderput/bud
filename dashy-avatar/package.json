@@ -16,7 +16,9 @@
     "build": "esbuild src/index.ts --bundle --format=esm --minify --outfile=dist/dashy.js && esbuild src/react/index.ts --bundle --format=esm --minify --external:react --outfile=dist/react.js && tsc -p tsconfig.build.json",
     "export": "tsx scripts/export.ts",
     "studio": "node scripts/build-studio.mjs --serve",
-    "build:studio": "node scripts/build-studio.mjs"
+    "build:studio": "node scripts/build-studio.mjs",
+    "swift:reference": "tsx scripts/swift-reference.ts",
+    "swift:test": "cd swift/DashyKit && swift test"
   },
   "peerDependencies": {
     "react": ">=18"

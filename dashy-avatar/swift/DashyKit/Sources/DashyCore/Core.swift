@@ -7,6 +7,7 @@ import Foundation
 public enum DashyState: String, CaseIterable, Codable, Sendable {
     case idle, received, working, thinking, waiting, blocked, done
     case happy, sad, angry, strict, dancing, sleepy
+    case surprised, love, confused, excited, scared, curious, proud, dizzy, bored, wink, talking, listening, shy
 
     /// Dutch display name (the `n` field in core.ts).
     public var name: String {
@@ -24,6 +25,19 @@ public enum DashyState: String, CaseIterable, Codable, Sendable {
         case .strict: return "Streng"
         case .dancing: return "Dansen"
         case .sleepy: return "Slaperig"
+        case .surprised: return "Verrast"
+        case .love: return "Verliefd"
+        case .confused: return "Verward"
+        case .excited: return "Opgewonden"
+        case .scared: return "Bang"
+        case .curious: return "Nieuwsgierig"
+        case .proud: return "Trots"
+        case .dizzy: return "Duizelig"
+        case .bored: return "Verveeld"
+        case .wink: return "Knipoog"
+        case .talking: return "Praten"
+        case .listening: return "Luisteren"
+        case .shy: return "Verlegen"
         }
     }
 }
@@ -84,6 +98,19 @@ private let modes: [DashyState: Mode] = [
     .strict: Mode(sd: 0, eh: 66, cover: 0.5, lidA: 3, low: 0, tilt: 0, asym: 0),
     .dancing: Mode(sd: 0, eh: 68, cover: 0, lidA: 0, low: 0.44, tilt: 7, asym: 0),
     .sleepy: Mode(sd: 2, eh: 62, cover: 0.6, lidA: -6, low: 0, tilt: 0, asym: 0),
+    .surprised: Mode(sd: 3, eh: 84, cover: 0, lidA: 0, low: 0, tilt: 0, asym: 0),
+    .love: Mode(sd: -1, eh: 74, cover: 0, lidA: 0, low: 0.42, tilt: -4, asym: 0),
+    .confused: Mode(sd: 0, eh: 64, cover: 0.14, lidA: -10, low: 0, tilt: -5, asym: 0.35),
+    .excited: Mode(sd: 1, eh: 74, cover: 0, lidA: 0, low: 0.3, tilt: 3, asym: 0),
+    .scared: Mode(sd: -3, eh: 74, cover: 0.06, lidA: -22, low: 0, tilt: 0, asym: 0),
+    .curious: Mode(sd: 0, eh: 70, cover: 0.04, lidA: 0, low: 0, tilt: 0, asym: -0.3),
+    .proud: Mode(sd: 0, eh: 62, cover: 0.4, lidA: 7, low: 0, tilt: 0, asym: -0.1),
+    .dizzy: Mode(sd: 0, eh: 62, cover: 0.1, lidA: 0, low: 0, tilt: 0, asym: 0.2),
+    .bored: Mode(sd: 1, eh: 58, cover: 0.52, lidA: -4, low: 0, tilt: 0, asym: 0),
+    .wink: Mode(sd: 0, eh: 68, cover: 0, lidA: 0, low: 0.34, tilt: 5, asym: 0.5),
+    .talking: Mode(sd: 0, eh: 66, cover: 0.06, lidA: 0, low: 0, tilt: 0, asym: 0),
+    .listening: Mode(sd: 0, eh: 70, cover: 0, lidA: -6, low: 0, tilt: 0, asym: 0),
+    .shy: Mode(sd: -1, eh: 60, cover: 0, lidA: 0, low: 0.32, tilt: -3, asym: 0),
 ]
 
 @inline(__always) private func clamp(_ v: Double, _ a: Double, _ b: Double) -> Double { max(a, min(b, v)) }
@@ -110,6 +137,7 @@ public final class Dashy {
     private var nextCut = 5000.0, nextScan = 0.0, nextPing = 3000.0, nextBurst = 2000.0, nextMicro = 0.0
     private var blinkStart = -1e9, blinkLen = 180.0, pokeUntil = 0.0, yawnUntil = 0.0, cutUntil = 0.0, cutDir = 1.0
     private var noStart = -1e9, pingUntil = 0.0, burstUntil = 0.0, noticeUntil = 0.0
+    private var nextSigh = 4000.0, sighUntil = 0.0, nextPeek = 3500.0, peekUntil = 0.0
     private var ehK: Double
     private var lastPtr = -1e9, ptx = 0.0, pty = 0.0, ptxF = 0.0, ptyF = 0.0, gtx = 0.0, gty = 0.0, msx = 0.0, msy = 0.0
     private var pokes: [Double] = []
@@ -217,6 +245,28 @@ public final class Dashy {
         case .sleepy:
             syT += sin(t * 1.1) * 0.03; sxT -= sin(t * 1.1) * 0.02; rotT = -4 + sin(t * 0.5) * 3; tyT = 8; amp = 0.2
             if now > nextYawn { yawnUntil = now + 1600; nextYawn = now + rnd(7000, 10000) }
+        case .surprised: tyT = -4; syT += 0.02; sxT -= 0.015; amp = 0.7
+        case .love:
+            let hb = pow(max(0, sin(t * 2 * Double.pi * 1.1)), 12)
+            tyT = sin(t * 1.8) * -3; rotT = sin(t * 1.2) * 3; syT += hb * 0.035; sxT += hb * 0.035
+        case .confused: rotT = sin(t * 0.45) * 7; tyT = -1; amp = 0.8
+        case .excited:
+            let ph = t * 2 * Double.pi * 1.6
+            tyT = -abs(sin(ph)) * 14 + 6; rotT = sin(ph) * 3; sxT += sin(ph * 2) * 0.012
+        case .scared: txT = sin(t * 38) * 1.4; tyT = 5; sxT -= 0.03; syT -= 0.04; rotT = sin(t * 29) * 0.6; amp = 0.9
+        case .curious: rotT = 8 + sin(t * 0.7) * 2; tyT = -3 + sin(t * 1.3) * -1.5; txT = 4
+        case .proud: tyT = -4; syT += 0.02; rotT = sin(t * 0.6) * 1.2; amp = 0.8
+        case .dizzy: rotT = sin(t * 2.2) * 6; txT = sin(t * 1.1) * 4; tyT = sin(t * 2.2) * 2
+        case .bored:
+            tyT = 6; rotT = -3 + sin(t * 0.3) * 1.5; amp = 0.7
+            if now > nextSigh { sighUntil = now + 1400; nextSigh = now + rnd(5000, 8000) }
+            if now < sighUntil { let sp = sin((1 - (sighUntil - now) / 1400) * Double.pi); syT += sp * 0.04; sxT -= sp * 0.02; tyT -= sp * 4 }
+        case .wink: tyT = sin(t * 2) * -2; rotT = 4 + sin(t * 1.4) * 1
+        case .talking:
+            let tk = abs(sin(t * 9) * sin(t * 2.3))
+            tyT = -tk * 2.5; rotT = sin(t * 1.3) * 2; syT += tk * 0.012
+        case .listening: rotT = 6 + sin(t * 0.5); tyT = -1 + sin(t * 1.7) * -1
+        case .shy: tyT = 7; sxT -= 0.02; syT -= 0.03; rotT = -4 + sin(t * 0.6); amp = 0.8
         }
         let sq = clamp(-ty.v * 0.0007, -0.25, 0.25); syT += sq; sxT -= sq * 0.7
         let noBlink = (c == .sleepy || c == .angry), bf = c == .working ? 1.8 : 1.0
@@ -237,7 +287,23 @@ public final class Dashy {
         } else if c == .thinking { gtx = 0.6 + sin(t * 0.7) * 0.3; gty = -0.8 + sin(t * 0.5) * 0.1 }
         else if c == .blocked { gtx = -0.6; gty = 0.9 }
         else if c == .received { gtx = 0; gty = (now - modeT > 250) ? 0.8 : 0 }
-        else if c == .waiting || c == .done {
+        else if c == .dizzy { gtx = cos(t * 4) * 0.8; gty = sin(t * 4) * 0.6 }
+        else if c == .confused { gtx = sin(t * 0.45) * -0.5; gty = -0.55 }
+        else if c == .proud { gtx = sin(t * 0.4) * 0.2; gty = -0.7 }
+        else if c == .bored { gtx = -0.7 + sin(t * 0.2) * 0.3; gty = 0.45 }
+        else if c == .listening { gtx = -0.55 + sin(t * 0.6) * 0.1; gty = -0.1 }
+        else if c == .scared {
+            if now > nextScan {
+                let opts: [Double] = [-1, -0.7, 0.7, 1]
+                gtx = opts[Int((R() * 4).rounded(.down))]; gty = rnd(-0.3, 0.3); nextScan = now + rnd(400, 900)
+            }
+        } else if c == .shy {
+            if now > nextPeek { peekUntil = now + 800; nextPeek = now + rnd(3500, 6000) }
+            if now < peekUntil { gtx = ptrRecent ? ptxF * 0.6 : 0; gty = ptrRecent ? ptyF * 0.6 : 0 } else { gtx = -0.6; gty = 0.75 }
+        } else if c == .curious || c == .surprised || c == .talking {
+            if ptrRecent { gtx = ptxF; gty = ptyF }
+            else { gtx = c == .curious ? 0.45 + sin(t * 0.8) * 0.2 : 0; gty = c == .curious ? -0.1 : c == .surprised ? -0.2 : 0.05 }
+        } else if c == .waiting || c == .done {
             if ptrRecent { gtx = ptxF; gty = ptyF } else { gtx = 0; gty = 0.1 }
         } else {
             if ptrRecent { gtx = ptxF; gty = ptyF }
@@ -252,7 +318,7 @@ public final class Dashy {
             }
         }
         if now > nextMicro { msx = rnd(-0.06, 0.06); msy = rnd(-0.05, 0.05); nextMicro = now + rnd(300, 900) }
-        let calm = (c != .working && c != .dancing && c != .angry), fast = c == .working
+        let calm = (c != .working && c != .dancing && c != .angry && c != .excited && c != .scared && c != .dizzy), fast = c == .working
         gx.k = fast ? 650 : 140; gx.d = fast ? 50 : 24; gy.k = gx.k; gy.d = gx.d
         gx.t = (gtx + (calm ? msx : 0)) * 14 * amp; gy.t = (gty + (calm ? msy : 0)) * 9 * amp
         fx.t = gtx * 7 * amp; fy.t = gty * 4 * amp

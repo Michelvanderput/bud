@@ -44,7 +44,7 @@ private func firstMismatch(_ a: [Double], _ b: [Double]) -> String? {
 
 final class GoldenTests: XCTestCase {
     func testThirtySecondSimulationsMatchTypeScript() {
-        XCTAssertEqual(reference.simulations.count, 26)
+        XCTAssertEqual(reference.simulations.count, 2 * DashyState.allCases.count)
         for sim in reference.simulations {
             let d = Dashy(seed: sim.seed); d.setShape(DashyShape(rawValue: sim.shape)!); d.setState(DashyState(rawValue: sim.state)!, now: 0)
             var i = 0, ms = 0.0, frame = 0

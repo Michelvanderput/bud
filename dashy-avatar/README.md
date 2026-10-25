@@ -13,7 +13,7 @@ npm run build:studio  # studio/dist/dashy-studio.html: één bestand, zo te open
 
 - **Toestanden**: alle 26, met live stills in je eigen stijl. Eigen expressies verschijnen erbij.
 - **Vorm**: hoekronding (vierkant tot rond), omlijning, schaduw; ogen: breedte, hoogte, afstand, rondheid, glans.
-- **Kleur**: acht stijlen (Origineel, Nacht, Munt, Perzik, Robot, Spookje, Citroen, Kool) en zes losse kleuren (lijf, ogen, omlijning, mond, blosjes, effecten).
+- **Kleur**: 42 stijlen in zes groepen (Klassiek, Pastel, Donker, Fel, Natuur, Figuren zoals Robot, Pixel, Uil, Kikker en Mochi) en zes losse kleuren (lijf, ogen, omlijning, mond, blosjes, effecten).
 - **Gezicht**: mond aan/uit, blosjes per toestand/altijd/uit, effecten aan/uit. Knop "Praten" laat de mond bewegen.
 - **Beweging**: snelheid, verende, ademhaling, kopdraai, ogen volgen de muis, knipperritme.
 - **Expressie**: maak je eigen gezicht met dezelfde schuiven die de toestanden gebruiken (ogen, mond, blos, effect) op het lijf van een toestand, en bewaar het onder een naam.
