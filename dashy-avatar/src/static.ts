@@ -1,6 +1,7 @@
 import { createDashy, STATE_KEYS, type Dashy, type DashyOptions, type DashyState, type Geometry, type Shape } from './core';
 import { layout, type Style } from './render';
-import { createDecor, faceDecorSvg, particlesSvg, shadowSvg, type Decor } from './decor';
+import { createDecor, faceDecorSvg, particlesSvg, shadowSvg, type Decor, type DecorLook } from './decor';
+import type { Look } from './timeline';
 import { smallGeometry, type Variant } from './small';
 import { DEFAULT_COLORS, type Colors } from './definition';
 import { backgroundDefs, type Background } from './photo';
@@ -98,6 +99,9 @@ export interface RecordOptions extends DashyOptions {
   fps?: number;
   /** Let the state settle for this long before recording. Default 1200 ms (0 for received, so the jump is in it). */
   warmupMs?: number;
+  /** A custom expression on top of the state: eyes and decor. */
+  look?: Look | null;
+  decorLook?: DecorLook | null;
 }
 
 /** Applies a Style to a fresh core (body corners and eyes). */
@@ -111,10 +115,10 @@ export function applyStyle(d: Dashy, style: Style = {}, shape?: Shape) {
 
 /** Deterministic frames of a state, straight from core.ts and decor.ts: for animated exports and sprite sheets. */
 export function recordFrames(state: DashyState, o: RecordOptions = {}): Frame[] {
-  const { shape, style = {}, durationMs = 2000, fps = 24, warmupMs, ...core } = o;
+  const { shape, style = {}, durationMs = 2000, fps = 24, warmupMs, look, decorLook, ...core } = o;
   const d = createDashy({ seed: 3, ...core }); applyStyle(d, style, shape);
   const decor = createDecor(style);
-  d.setState(state, 0);
+  d.setState(state, 0); if (look) d.setLook(look); if (decorLook) decor.setLook(decorLook);
   const warm = warmupMs ?? (state === 'received' ? 0 : 1200), dt = 1000 / 60, out: Frame[] = [];
   let t = 0;
   for (; t < warm; t += dt) { d.pointer(0, 0, t); decor.step(d.step(t), t); }
@@ -130,10 +134,10 @@ export function recordFrames(state: DashyState, o: RecordOptions = {}): Frame[] 
 
 /** One still with decor: settledGeometry plus the mouth, blush and effects of that moment. */
 export function settledFrame(state: DashyState, o: Omit<RecordOptions, 'durationMs' | 'fps' | 'warmupMs'> = {}): Frame {
-  const { shape, style = {}, ...core } = o;
+  const { shape, style = {}, look, decorLook, ...core } = o;
   const d = createDashy({ seed: 3, ...core }); applyStyle(d, style, shape);
   const decor = createDecor(style);
-  d.setState(state, 0);
+  d.setState(state, 0); if (look) d.setLook(look); if (decorLook) decor.setLook(decorLook);
   const end = SAMPLE_MS[state] ?? DEFAULT_SAMPLE_MS;
   let G!: Geometry, D!: Decor;
   for (let ms = 0; ms <= end + 1500; ms += 1000 / 60) {

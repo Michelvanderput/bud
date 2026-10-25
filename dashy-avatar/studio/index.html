@@ -1,0 +1,239 @@
+<meta charset="utf-8">
+<title>Dashy Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: an animator's light table. State library | model sheet on the stage | rig controls. Stacks on phones. */
+:root {
+  --paper: #eef2f5;       /* light-table paper, a cool grey */
+  --sheet: #f8fafb;       /* the model sheet the character stands on */
+  --grid: #bcdcee;        /* non-photo blue: construction lines */
+  --ink: #15181c;
+  --muted: #5b6772;
+  --line: #d3dde4;
+  --raised: #ffffff;
+  --accent: #e2335a;      /* Dashy's own pink, kept for what is active */
+  --accent-ink: #ffffff;
+  --blue: #2a72b5;        /* deep pencil blue for keys and values */
+  --ok: #1f8a5b;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0f1317; --sheet: #151b21; --grid: #1e3a4c; --ink: #e8eef3; --muted: #93a1ad; --line: #26313a;
+  --raised: #1b232a; --accent: #ff5c7a; --accent-ink: #1a0b10; --blue: #78b9ee; --ok: #4fd39a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #0f1317; --sheet: #151b21; --grid: #1e3a4c; --ink: #e8eef3; --muted: #93a1ad; --line: #26313a;
+  --raised: #1b232a; --accent: #ff5c7a; --accent-ink: #1a0b10; --blue: #78b9ee; --ok: #4fd39a; color-scheme: dark }
+
+* { box-sizing: border-box }
+html, body { min-height: 100% }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.45 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 40px }
+button, input, select, textarea { font: inherit; color: inherit }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: -.01em }
+.mono { font-family: var(--mono) }
+.label { font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; max-width: 1520px; margin: 0 auto 14px }
+.brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto }
+.brand h1 { font-size: 26px; font-weight: 800 }
+.brand span { color: var(--muted); font-size: 13px }
+.btn { border: 1px solid var(--line); background: var(--raised); border-radius: 999px; padding: 7px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap }
+.btn:hover { border-color: var(--muted) }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink) }
+.btn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
+.btn.small { padding: 4px 10px; font-size: 13px }
+.btn:disabled { opacity: .5; cursor: default }
+select, input[type=text], input[type=number], textarea { background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 0 }
+
+/* main grid */
+.app { display: grid; gap: 14px; max-width: 1520px; margin: 0 auto; grid-template-columns: minmax(0, 1fr) }
+@media (min-width: 1100px) { .app { grid-template-columns: 270px minmax(0, 1fr) 350px; align-items: start } }
+@media (max-width: 759px) { .stage-wrap { order: -1 } }
+@media (min-width: 760px) and (max-width: 1099px) { .app { grid-template-columns: minmax(0, 1fr) 340px } .lib { grid-column: 1 / -1; order: 2 } }
+.pane { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r); min-width: 0 }
+
+/* library */
+.lib { padding: 12px; display: flex; flex-direction: column; gap: 10px }
+@media (min-width: 1100px) { .lib { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 10px); max-height: calc(100vh - 28px); overflow: auto } }
+.lib-head { display: flex; justify-content: space-between; align-items: baseline }
+.states { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 6px }
+.st { border: 1px solid transparent; background: none; border-radius: 9px; padding: 4px 2px 6px; cursor: pointer; display: grid; gap: 2px; justify-items: center; text-align: center }
+.st:hover { background: var(--paper) }
+.st[aria-pressed=true] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent) }
+.st .th { width: 58px; height: 58px; display: block }
+.st .th svg { width: 100%; height: 100%; display: block; overflow: visible }
+.st b { font-size: 12px; font-weight: 700; line-height: 1.15 }
+.st i { font: 10px var(--mono); color: var(--muted); font-style: normal }
+.group-title { margin-top: 4px }
+
+/* stage */
+.stage-wrap { display: flex; flex-direction: column; gap: 14px; min-width: 0 }
+.stage { position: relative; overflow: hidden; border-radius: var(--r); border: 1px solid var(--line); aspect-ratio: 4 / 3; max-width: 100%; background: var(--sheet) }
+.stage.bg-grid { background-color: var(--sheet); background-image:
+  linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+  linear-gradient(color-mix(in srgb, var(--grid) 45%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--grid) 45%, transparent) 1px, transparent 1px);
+  background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px; background-position: center }
+.stage.bg-none { background-color: var(--sheet); background-image: conic-gradient(var(--line) 25%, transparent 0 50%, var(--line) 0 75%, transparent 0); background-size: 20px 20px }
+.pegs { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 46px; pointer-events: none }
+.pegs i { width: 26px; height: 9px; border-radius: 6px; background: var(--paper); border: 1px solid var(--line) }
+.pegs i:nth-child(2) { width: 12px; border-radius: 50% }
+.avatar { position: absolute; left: 50%; top: 52%; width: min(46%, 340px); aspect-ratio: 1; transform: translate(-50%, -50%) }
+.hud { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; justify-content: space-between; gap: 10px; font: 12px var(--mono); color: var(--muted); pointer-events: none; flex-wrap: wrap }
+.hud b { color: var(--ink); font-weight: 600 }
+.hud .key { color: var(--blue) }
+.stage-tools { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px }
+.stage-tools .btn { padding: 4px 9px; font-size: 12px }
+.reg { position: absolute; width: 18px; height: 18px; pointer-events: none; opacity: .8 }
+.reg::before, .reg::after { content: ""; position: absolute; background: var(--blue) }
+.reg::before { left: 8px; top: 0; width: 1.5px; height: 18px } .reg::after { top: 8px; left: 0; height: 1.5px; width: 18px }
+.reg.a { left: 14px; top: 14px } .reg.b { right: 14px; bottom: 34px }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.sizes { display: flex; gap: 14px; align-items: end; flex-wrap: wrap; margin-left: auto }
+.sizes figure { margin: 0; display: grid; justify-items: center; gap: 3px }
+.sizes figcaption { font: 10px var(--mono); color: var(--muted) }
+.sizes svg { display: block }
+
+/* dope sheet */
+.dope { padding: 12px; display: grid; gap: 10px }
+.dope-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.dope-head h2 { font-size: 18px; margin-right: auto }
+.track { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px }
+.cell { flex: 0 0 auto; width: 150px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: grid; gap: 6px; background: var(--paper); position: relative }
+.cell.now { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset }
+.cell .num { font: 600 11px var(--mono); color: var(--blue) }
+.cell label { display: grid; grid-template-columns: 44px 1fr; gap: 6px; align-items: center; font-size: 12px; color: var(--muted) }
+.cell input, .cell select { width: 100%; padding: 3px 5px; font-size: 12px }
+.cell .x { position: absolute; top: 4px; right: 4px; border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1 }
+.ruler { height: 8px; border-radius: 4px; background: var(--line); position: relative; overflow: hidden }
+.ruler i { position: absolute; top: 0; bottom: 0; background: var(--blue); opacity: .55 }
+.ruler i.t { background: var(--accent); opacity: .5 }
+
+/* rig panel */
+.rig { display: flex; flex-direction: column }
+@media (min-width: 1100px) { .rig { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 10px); max-height: calc(100vh - 28px) } }
+.tabs { display: flex; flex-wrap: wrap; gap: 0 2px; padding: 6px 8px 0; border-bottom: 1px solid var(--line) }
+.tab { border: 0; background: none; padding: 8px 8px 9px; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); font-weight: 700; white-space: nowrap }
+.tab[aria-selected=true] { color: var(--ink); border-bottom-color: var(--accent) }
+.tabpanels { overflow: auto; padding: 14px }
+.sec { display: grid; gap: 10px; padding-bottom: 16px; margin-bottom: 14px; border-bottom: 1px dashed var(--line) }
+.sec:last-child { border-bottom: 0; margin-bottom: 0 }
+.sec h3 { font-size: 15px }
+.row { display: grid; grid-template-columns: 112px minmax(0, 1fr) 46px; gap: 10px; align-items: center; font-size: 13px }
+.row output { font: 12px var(--mono); color: var(--blue); text-align: right; font-variant-numeric: tabular-nums }
+.row input[type=range] { width: 100%; accent-color: var(--accent) }
+.chk { display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer }
+.chk input { accent-color: var(--accent); width: 16px; height: 16px }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden }
+.seg button { border: 0; background: none; padding: 5px 11px; cursor: pointer; font-size: 13px }
+.seg button[aria-pressed=true] { background: var(--ink); color: var(--paper) }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px }
+.sw { display: grid; gap: 4px; font-size: 12px; color: var(--muted) }
+.sw input[type=color] { width: 100%; height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--raised); cursor: pointer }
+.presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px }
+.preset { border: 1px solid var(--line); background: var(--paper); border-radius: 9px; padding: 6px 4px; cursor: pointer; display: grid; justify-items: center; gap: 2px; font-size: 12px }
+.preset svg { width: 44px; height: 44px; display: block }
+.hint { font-size: 12px; color: var(--muted); margin: 0 }
+.saved { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 4px 3px 10px; font: 12px var(--mono); background: var(--paper) }
+.chip button { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 0 4px; font-size: 14px }
+.chip.go { cursor: pointer }
+
+/* export */
+.exports { display: grid; gap: 8px }
+.ex { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper) }
+.ex b { font-size: 14px } .ex p { grid-column: 1; margin: 0; font-size: 12px; color: var(--muted) }
+.ex .btn { grid-row: 1 / span 2; grid-column: 2 }
+.ex select { font-size: 12px; padding: 3px 6px }
+pre.code { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 9px; padding: 10px; font: 12px/1.5 var(--mono); overflow: auto; max-height: 260px; white-space: pre }
+textarea.code { width: 100%; min-height: 120px; font: 12px/1.5 var(--mono); resize: vertical }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 9px 16px; border-radius: 999px; font-size: 14px; z-index: 20; max-width: calc(100% - 32px) }
+.progress { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden } .progress i { display: block; height: 100%; background: var(--accent); width: 0 }
+.err { color: var(--accent); font-size: 12px; margin: 0 }
+@media (max-width: 520px) { .row { grid-template-columns: 92px minmax(0, 1fr) 40px } .avatar { width: 62% } .stage { aspect-ratio: 1 } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important } }
+</style>
+
+<header class="top">
+  <div class="brand"><h1>Dashy Studio</h1><span>26 toestanden · rig · export</span></div>
+  <button class="btn" id="random" type="button">Verras me</button>
+  <button class="btn" id="reset" type="button">Terug naar origineel</button>
+  <button class="btn primary" id="quick-export" type="button">Exporteer pakket (.zip)</button>
+</header>
+
+<main class="app">
+  <aside class="pane lib" aria-label="Toestanden">
+    <div class="lib-head"><h2 style="font-size:18px">Toestanden</h2><span class="label" id="count"></span></div>
+    <p class="hint">Klik om te spelen. Tik Dashy zelf aan om hem te laten schrikken (4x snel en hij wordt boos).</p>
+    <div class="label group-title">Werk</div>
+    <div class="states" id="states-status"></div>
+    <div class="label group-title">Gevoel</div>
+    <div class="states" id="states-mood"></div>
+    <div class="label group-title" id="custom-title" hidden>Eigen expressies</div>
+    <div class="states" id="states-custom"></div>
+  </aside>
+
+  <section class="stage-wrap" aria-label="Podium">
+    <div class="stage bg-grid" id="stage">
+      <div class="pegs" aria-hidden="true"><i></i><i></i><i></i></div>
+      <span class="reg a" aria-hidden="true"></span><span class="reg b" aria-hidden="true"></span>
+      <div class="avatar" id="avatar"></div>
+      <div class="stage-tools">
+        <div class="seg" role="group" aria-label="Achtergrond">
+          <button type="button" data-bg="grid" aria-pressed="true">Raster</button>
+          <button type="button" data-bg="solid" aria-pressed="false">Kleur</button>
+          <button type="button" data-bg="none" aria-pressed="false">Leeg</button>
+        </div>
+      </div>
+      <div class="hud"><span>toestand <b class="key" id="hud-state">idle</b> · <span id="hud-name">Idle</span></span><span>fr <b id="hud-frame">0000</b> · 24 fps</span></div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="poke" type="button">Por</button>
+      <button class="btn" id="talk" type="button" aria-pressed="false">Praten</button>
+      <button class="btn" id="pause" type="button" aria-pressed="false">Pauzeer</button>
+      <div class="sizes" id="sizes" aria-label="Formaten"></div>
+    </div>
+    <div class="pane dope">
+      <div class="dope-head">
+        <h2>Sequentie</h2>
+        <select id="seq-pick" aria-label="Kies sequentie"></select>
+        <select id="seq-mode" aria-label="Afspeelwijze"><option value="once">eenmalig</option><option value="loop">herhalen</option><option value="pingPong">heen en weer</option></select>
+        <button class="btn small" id="seq-add" type="button">+ stap</button>
+        <button class="btn small" id="seq-new" type="button">Nieuw</button>
+        <button class="btn small" id="seq-del" type="button">Verwijder</button>
+        <button class="btn small primary" id="seq-play" type="button">Afspelen</button>
+      </div>
+      <div class="track" id="track"></div>
+      <p class="hint">Elke cel is een stap: welke toestand of expressie, hoe lang hij blijft staan (houd) en hoe snel hij erheen gaat (overgang), in milliseconden.</p>
+    </div>
+  </section>
+
+  <aside class="pane rig" aria-label="Instellingen">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" type="button" data-tab="look" aria-selected="true">Vorm</button>
+      <button class="tab" role="tab" type="button" data-tab="color" aria-selected="false">Kleur</button>
+      <button class="tab" role="tab" type="button" data-tab="face" aria-selected="false">Gezicht</button>
+      <button class="tab" role="tab" type="button" data-tab="motion" aria-selected="false">Beweging</button>
+      <button class="tab" role="tab" type="button" data-tab="expr" aria-selected="false">Expressie</button>
+      <button class="tab" role="tab" type="button" data-tab="export" aria-selected="false">Export</button>
+    </div>
+    <div class="tabpanels">
+      <div role="tabpanel" data-panel="look"></div>
+      <div role="tabpanel" data-panel="color" hidden></div>
+      <div role="tabpanel" data-panel="face" hidden></div>
+      <div role="tabpanel" data-panel="motion" hidden></div>
+      <div role="tabpanel" data-panel="expr" hidden></div>
+      <div role="tabpanel" data-panel="export" hidden></div>
+    </div>
+  </aside>
+</main>
+<div class="toast" id="toast" hidden></div>
+<!-- STUDIO_SCRIPT -->

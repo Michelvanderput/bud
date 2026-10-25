@@ -1,4 +1,5 @@
 node_modules/
 dist/
+!dashy-avatar/studio/dist/
 .DS_Store
 .build/
