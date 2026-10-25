@@ -5,11 +5,15 @@
  */
 export type Status = 'idle' | 'received' | 'working' | 'thinking' | 'waiting' | 'blocked' | 'done';
 export type Mood = 'happy' | 'sad' | 'angry' | 'strict' | 'dancing' | 'sleepy'
-  | 'surprised' | 'love' | 'confused' | 'excited' | 'scared' | 'curious' | 'proud' | 'dizzy' | 'bored' | 'wink' | 'talking' | 'listening' | 'shy';
+  | 'surprised' | 'love' | 'confused' | 'excited' | 'scared' | 'curious' | 'proud' | 'dizzy' | 'bored' | 'wink' | 'talking' | 'listening' | 'shy'
+  | 'laughing' | 'crying' | 'sick' | 'cool' | 'mischief' | 'determined' | 'relieved' | 'nervous' | 'cold' | 'hot' | 'starstruck'
+  | 'nodding' | 'searching' | 'loading' | 'success' | 'error' | 'idea' | 'gloomy';
 export type DashyState = Status | Mood;
 /** Every state, in display order. The one list the other modules (static, definition, svg) take theirs from. */
 export const STATE_KEYS: readonly DashyState[] = ['idle', 'received', 'working', 'thinking', 'waiting', 'blocked', 'done', 'happy', 'sad', 'angry', 'strict', 'dancing', 'sleepy',
-  'surprised', 'love', 'confused', 'excited', 'scared', 'curious', 'proud', 'dizzy', 'bored', 'wink', 'talking', 'listening', 'shy'];
+  'surprised', 'love', 'confused', 'excited', 'scared', 'curious', 'proud', 'dizzy', 'bored', 'wink', 'talking', 'listening', 'shy',
+  'laughing', 'crying', 'sick', 'cool', 'mischief', 'determined', 'relieved', 'nervous', 'cold', 'hot', 'starstruck',
+  'nodding', 'searching', 'loading', 'success', 'error', 'idea', 'gloomy'];
 export type Shape = 'square' | 'circle';
 export type { Look, BlinkConfig } from './timeline';
 
@@ -111,7 +115,25 @@ export function createDashy(options: DashyOptions = {}): Dashy {
   wink:{n:'Knipoog',sd:0,eh:68,cover:0,lidA:0,low:.34,tilt:5,asym:.5},
   talking:{n:'Praten',sd:0,eh:66,cover:.06,lidA:0,low:0,tilt:0,asym:0},
   listening:{n:'Luisteren',sd:0,eh:70,cover:0,lidA:-6,low:0,tilt:0,asym:0},
-  shy:{n:'Verlegen',sd:-1,eh:60,cover:0,lidA:0,low:.32,tilt:-3,asym:0}
+  shy:{n:'Verlegen',sd:-1,eh:60,cover:0,lidA:0,low:.32,tilt:-3,asym:0},
+  laughing:{n:'Lachen',sd:0,eh:60,cover:0,lidA:0,low:.55,tilt:8,asym:0},
+  crying:{n:'Huilen',sd:3,eh:56,cover:.3,lidA:-20,low:0,tilt:0,asym:0},
+  sick:{n:'Ziek',sd:2,eh:54,cover:.45,lidA:-8,low:0,tilt:0,asym:.15},
+  cool:{n:'Cool',sd:0,eh:60,cover:.42,lidA:0,low:.1,tilt:0,asym:0},
+  mischief:{n:'Ondeugend',sd:-1,eh:62,cover:.35,lidA:12,low:.25,tilt:0,asym:.2},
+  determined:{n:'Vastberaden',sd:-2,eh:62,cover:.3,lidA:16,low:0,tilt:0,asym:0},
+  relieved:{n:'Opgelucht',sd:1,eh:60,cover:.5,lidA:-10,low:.2,tilt:0,asym:0},
+  nervous:{n:'Zenuwachtig',sd:-2,eh:70,cover:.1,lidA:-18,low:0,tilt:0,asym:0},
+  cold:{n:'Koud',sd:-2,eh:60,cover:.2,lidA:-10,low:0,tilt:0,asym:0},
+  hot:{n:'Warm',sd:2,eh:58,cover:.45,lidA:-6,low:0,tilt:0,asym:0},
+  starstruck:{n:'Sterren in de ogen',sd:2,eh:82,cover:0,lidA:0,low:.1,tilt:0,asym:0},
+  nodding:{n:'Knikken',sd:0,eh:64,cover:.08,lidA:0,low:.12,tilt:0,asym:0},
+  searching:{n:'Zoeken',sd:0,eh:70,cover:0,lidA:0,low:0,tilt:0,asym:0},
+  loading:{n:'Laden',sd:0,eh:60,cover:.1,lidA:0,low:0,tilt:0,asym:0},
+  success:{n:'Gelukt',sd:0,eh:64,cover:0,lidA:0,low:.4,tilt:6,asym:0},
+  error:{n:'Fout',sd:1,eh:62,cover:.3,lidA:-24,low:0,tilt:0,asym:0},
+  idea:{n:'Idee',sd:2,eh:80,cover:0,lidA:0,low:0,tilt:0,asym:0},
+  gloomy:{n:'Somber',sd:2,eh:56,cover:.45,lidA:-14,low:0,tilt:0,asym:0}
  };
  var KEYS=['sep','eh','cover','lidA','low','tilt','asym'];
  var P:Record<string,Sp>={};
@@ -123,7 +145,7 @@ export function createDashy(options: DashyOptions = {}): Dashy {
  function setBounce(b:number){b=clamp(b,.4,2.5);BODY.forEach(function(n:string){P[n].d=BD[n]/b})}
  if(options.bounce!==undefined)setBounce(options.bounce);
  var st:any={cur:'idle',shape:'square',modeT:0,last:null,acc:0,
-  nextHop:2500,nextStomp:2000,nextBlink:1800,nextWander:0,nextYawn:5000,nextNo:4500,nextCut:5000,nextScan:0,nextPing:3000,nextBurst:2000,nextMicro:0,nextSigh:4000,sighUntil:0,nextPeek:3500,peekUntil:0,
+  nextHop:2500,nextStomp:2000,nextBlink:1800,nextWander:0,nextYawn:5000,nextNo:4500,nextCut:5000,nextScan:0,nextPing:3000,nextBurst:2000,nextMicro:0,nextSigh:4000,sighUntil:0,nextPeek:3500,peekUntil:0,nextJitter:1500,jitterUntil:0,
   blinkStart:-1e9,blinkLen:180,pokeUntil:0,yawnUntil:0,cutUntil:0,cutDir:1,noStart:-1e9,pingUntil:0,burstUntil:0,noticeUntil:0,
   ehK:options.eyeScale ?? 55/66,look:null as Look|null,amb:level(options.ambient),persp:level(options.perspective),spring:null as {k:number;d:number}|null,blinkCfg:(options.blink??null) as BlinkConfig|null,aw:null as {eye:number;body:number}|null,lastPtr:-1e9,ptx:0,pty:0,ptxF:0,ptyF:0,gtx:0,gty:0,msx:0,msy:0,pokes:[],revertAt:0,revertTo:null};
  var S=1.01,H=1/120;
@@ -202,6 +224,32 @@ export function createDashy(options: DashyOptions = {}): Dashy {
   else if(cur==='talking'){var tk=Math.abs(Math.sin(t*9)*Math.sin(t*2.3));ty=-tk*2.5;rot=Math.sin(t*1.3)*2;sy+=tk*.012}
   else if(cur==='listening'){rot=6+Math.sin(t*.5);ty=-1+Math.sin(t*1.7)*-1}
   else if(cur==='shy'){ty=7;sx-=.02;sy-=.03;rot=-4+Math.sin(t*.6);amp=.8}
+  else if(cur==='laughing'){ty=-Math.abs(Math.sin(t*14))*4;rot=Math.sin(t*7)*2;sy+=Math.abs(Math.sin(t*14))*.02;amp=.6}
+  else if(cur==='crying'){var sob=Math.pow(Math.abs(Math.sin(t*3.2)),6);ty=8-sob*3;sy+=sob*.03;sx-=sob*.015;rot=-2+Math.sin(t*.7)*1.5;amp=.5}
+  else if(cur==='sick'){ty=7;rot=Math.sin(t*.6)*4;tx=Math.sin(t*.45)*3;sy+=Math.sin(t*1.2)*.02;amp=.5}
+  else if(cur==='cool'){rot=-5+Math.sin(t*1.6)*1.2;ty=Math.abs(Math.sin(t*1.6))*-2;amp=.7}
+  else if(cur==='mischief'){rot=Math.sin(t*1.1)*3;ty=-1+Math.sin(t*2.2)*-1.5;sx+=Math.sin(t*4.4)*.008}
+  else if(cur==='determined'){ty=-2+Math.abs(Math.sin(t*2.4))*-2;rot=0;sy+=.015;amp=.5}
+  else if(cur==='relieved'){
+   ty=4;rot=Math.sin(t*.5)*1.5;amp=.6;
+   if(now>st.nextSigh){st.sighUntil=now+1800;st.nextSigh=now+rnd(4500,7000)}
+   if(now<st.sighUntil){var rl=Math.sin((1-(st.sighUntil-now)/1800)*Math.PI);sy-=rl*.05;sx+=rl*.03;ty+=rl*4}
+  }
+  else if(cur==='nervous'){tx=Math.sin(t*31)*.9;ty=3;sx-=.02;sy-=.02;rot=Math.sin(t*23)*.5}
+  else if(cur==='cold'){tx=Math.sin(t*60)*1.6;rot=Math.sin(t*53)*.8;sx-=.035;sy-=.03;ty=4;amp=.6}
+  else if(cur==='hot'){ty=9;rot=Math.sin(t*.8)*3;sy+=Math.sin(t*.9)*.025;sx+=.02;amp=.5}
+  else if(cur==='starstruck'){ty=-3+Math.sin(t*3)*-2;rot=Math.sin(t*1.5)*2;sx+=Math.sin(t*6)*.01}
+  else if(cur==='nodding'){var nd=Math.sin(t*5.5);ty=Math.max(0,nd)*5;rot=0;sy-=Math.max(0,nd)*.025;amp=.8}
+  else if(cur==='searching'){rot=Math.sin(t*1.2)*4;tx=Math.sin(t*1.2)*3;ty=-1}
+  else if(cur==='loading'){ty=Math.sin(t*2)*-1;rot=0;amp=.7}
+  else if(cur==='success'){ty=Math.sin(t*2.4)*-3;rot=Math.sin(t*1.6)*2;if(now>st.nextHop){P.ty.v=-320;st.nextHop=now+rnd(2600,4200)}}
+  else if(cur==='error'){
+   ty=4;rot=-1;
+   if(now>st.nextJitter){st.jitterUntil=now+450;st.nextJitter=now+2400}
+   if(now<st.jitterUntil)tx=Math.sin(t*60)*3.5*Math.min(1,(st.jitterUntil-now)/200);
+  }
+  else if(cur==='idea'){ty=-5;sy+=.025;rot=Math.sin(t*1.2)*1.5;amp=.8}
+  else if(cur==='gloomy'){ty=10;rot=-3+Math.sin(t*.4)*1.5;sy+=Math.sin(t*.8)*.015;amp=.5}
   var sq=clamp(-P.ty.v*.0007,-.25,.25);sy+=sq;sx-=sq*.7;
   var bc=st.blinkCfg,noBlink=(cur==='sleepy'||cur==='angry')||(bc!==null&&bc.enabled===false),bf=cur==='working'?1.8:1;
   if(now>st.nextBlink&&!noBlink){st.blinkStart=now;st.blinkLen=bc&&bc.durationMs?rnd(bc.durationMs*.86,bc.durationMs*1.14):rnd(150,200);st.nextBlink=now+(R()<.18?330:rnd(bc&&bc.minMs?bc.minMs:2000,bc&&bc.maxMs?bc.maxMs:5200)*bf)}
@@ -225,6 +273,19 @@ export function createDashy(options: DashyOptions = {}): Dashy {
    if(now<st.peekUntil){st.gtx=ptrRecent?st.ptxF*.6:0;st.gty=ptrRecent?st.ptyF*.6:0}else{st.gtx=-.6;st.gty=.75}
   }
   else if(cur==='curious'||cur==='surprised'||cur==='talking'){if(ptrRecent){st.gtx=st.ptxF;st.gty=st.ptyF}else{st.gtx=cur==='curious'?.45+Math.sin(t*.8)*.2:0;st.gty=cur==='curious'?-.1:cur==='surprised'?-.2:.05}}
+  else if(cur==='laughing'){st.gtx=0;st.gty=-.35}
+  else if(cur==='crying'||cur==='gloomy'){st.gtx=cur==='crying'?0:-.3;st.gty=.7}
+  else if(cur==='sick'){st.gtx=Math.sin(t*.6)*.4;st.gty=.4}
+  else if(cur==='cool'){st.gtx=ptrRecent?st.ptxF*.5:.3;st.gty=0}
+  else if(cur==='mischief'){st.gtx=Math.sin(t*.9)>0?.85:-.85;st.gty=.1}
+  else if(cur==='determined'){st.gtx=0;st.gty=0}
+  else if(cur==='nervous'){if(now>st.nextScan){st.gtx=rnd(-1,1);st.gty=rnd(-.4,.5);st.nextScan=now+rnd(250,600)}}
+  else if(cur==='cold'||cur==='hot'){st.gtx=0;st.gty=cur==='hot'?.5:.2}
+  else if(cur==='starstruck'||cur==='idea'){st.gtx=ptrRecent?st.ptxF*.4:0;st.gty=-.6}
+  else if(cur==='nodding'){st.gtx=ptrRecent?st.ptxF*.5:0;st.gty=Math.max(0,Math.sin(t*5.5))*.5}
+  else if(cur==='searching'){st.gtx=Math.sin(t*1.2);st.gty=-.1+Math.sin(t*2.4)*.15}
+  else if(cur==='loading'){st.gtx=Math.cos(t*3)*.55;st.gty=Math.sin(t*3)*.4}
+  else if(cur==='error'){st.gtx=-.3;st.gty=.3}
   else if(cur==='waiting'||cur==='done'){if(ptrRecent){st.gtx=st.ptxF;st.gty=st.ptyF}else{st.gtx=0;st.gty=.1}}
   else{
    if(ptrRecent){st.gtx=st.ptxF;st.gty=st.ptyF}
@@ -235,7 +296,7 @@ export function createDashy(options: DashyOptions = {}): Dashy {
    }
   }
   if(now>st.nextMicro){st.msx=rnd(-.06,.06);st.msy=rnd(-.05,.05);st.nextMicro=now+rnd(300,900)}
-  var calm=(cur!=='working'&&cur!=='dancing'&&cur!=='angry'&&cur!=='excited'&&cur!=='scared'&&cur!=='dizzy'),fast=cur==='working';
+  var calm=(cur!=='working'&&cur!=='dancing'&&cur!=='angry'&&cur!=='excited'&&cur!=='scared'&&cur!=='dizzy'&&cur!=='laughing'&&cur!=='cold'&&cur!=='nervous'&&cur!=='loading'),fast=cur==='working';
   P.gx.k=fast?650:140;P.gx.d=fast?50:24;P.gy.k=P.gx.k;P.gy.d=P.gx.d;
   P.gx.t=(st.gtx+(calm?st.msx:0))*14*amp;P.gy.t=(st.gty+(calm?st.msy:0))*9*amp;
   P.fx.t=st.gtx*7*amp;P.fy.t=st.gty*4*amp;

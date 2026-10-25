@@ -36,6 +36,10 @@ public struct DashyView: View {
         .surprised: "Dashy is verrast", .love: "Dashy is verliefd", .confused: "Dashy snapt het niet", .excited: "Dashy is door het dolle heen",
         .scared: "Dashy is bang", .curious: "Dashy is nieuwsgierig", .proud: "Dashy is trots", .dizzy: "Dashy is duizelig",
         .bored: "Dashy verveelt zich", .wink: "Dashy knipoogt", .talking: "Dashy praat", .listening: "Dashy luistert", .shy: "Dashy is verlegen",
+        .laughing: "Dashy lacht", .crying: "Dashy huilt", .sick: "Dashy voelt zich ziek", .cool: "Dashy is cool", .mischief: "Dashy is ondeugend",
+        .determined: "Dashy is vastberaden", .relieved: "Dashy is opgelucht", .nervous: "Dashy is zenuwachtig", .cold: "Dashy heeft het koud",
+        .hot: "Dashy heeft het warm", .starstruck: "Dashy heeft sterren in zijn ogen", .nodding: "Dashy knikt ja", .searching: "Dashy zoekt iets",
+        .loading: "Dashy is aan het laden", .success: "Dashy: gelukt", .error: "Dashy: er ging iets mis", .idea: "Dashy heeft een idee", .gloomy: "Dashy is somber",
     ]
 
     /// Holds the simulation. A reference type so stepping inside the draw closure does not invalidate the view.

@@ -1,6 +1,6 @@
 # Dashy avatar
 
-Een levende avatar: twee pilvormige ogen op een wit lijf. Eigen veerfysica, 26 toestanden, ambient leven (micro-saccades, zweving), kopdraai, een gezicht-laag (mond, blosjes, ooglichtjes, schaduw, 14 effecten), sequenties, één JSON-definitie en statische en geanimeerde exports. Geen dependencies in de kern.
+Een levende avatar: twee pilvormige ogen op een wit lijf. Eigen veerfysica, 44 toestanden, ambient leven (micro-saccades, zweving), kopdraai, een gezicht-laag (mond, blosjes, ooglichtjes, schaduw, 24 effecten), sequenties, één JSON-definitie en statische en geanimeerde exports. Geen dependencies in de kern.
 
 ## Dashy Studio
 
@@ -11,7 +11,7 @@ npm run studio        # http://localhost:5174/dashy-studio.html, bouwt opnieuw b
 npm run build:studio  # studio/dist/dashy-studio.html: één bestand, zo te openen of te delen
 ```
 
-- **Toestanden**: alle 26, met live stills in je eigen stijl. Eigen expressies verschijnen erbij.
+- **Toestanden**: alle 44, met live stills in je eigen stijl. Eigen expressies verschijnen erbij.
 - **Vorm**: hoekronding (vierkant tot rond), omlijning, schaduw; ogen: breedte, hoogte, afstand, rondheid, glans.
 - **Kleur**: 42 stijlen in zes groepen (Klassiek, Pastel, Donker, Fel, Natuur, Figuren zoals Robot, Pixel, Uil, Kikker en Mochi) en zes losse kleuren (lijf, ogen, omlijning, mond, blosjes, effecten).
 - **Gezicht**: mond aan/uit, blosjes per toestand/altijd/uit, effecten aan/uit. Knop "Praten" laat de mond bewegen.
@@ -28,9 +28,9 @@ Je instellingen blijven bewaard in je browser.
 |---|---|
 | `src/core.ts` | De simulatie. Geen DOM, geen timers: jij geeft de tijd mee (`step(now)`) en krijgt geometrie terug. Dit is het deel dat je naar andere platforms overzet. |
 | `src/svg.ts` | Tekent die geometrie als SVG (`mountDashy`), volgt de muis, respecteert "minder beweging", leesbare tekst voor schermlezers. Stijl, beweging, snelheid en praten zijn live aan te passen. |
-| `src/decor.ts` | Mond, blosjes, ooglichtjes, schaduw en effecten (zzz, hartjes, sterretjes, sterren, vraagteken, uitroepteken, zweetdruppel, traan, muzieknoten, stoom, puntjes, denkwolkje, confetti, geluidsgolven). Zuiver en deterministisch, net als de kern. |
+| `src/decor.ts` | Mond, blosjes, ooglichtjes, schaduw en effecten (zzz, hartjes, sterretjes, sterren, vraagteken, uitroepteken, zweetdruppel, traan, tranenstroom, muzieknoten, stoom, puntjes, denkwolkje, confetti, geluidsgolven, sneeuw, vlammen, regenwolk, lampje, laadcirkel, vinkje, kruis, belletjes, bliksem). Zuiver en deterministisch, net als de kern. |
 | `studio/` | Dashy Studio (zie boven). |
-| `scripts/` | `export.ts` maakt `exports/` opnieuw (`npm run export`, gebruikt Playwright), `build-studio.mjs` bouwt de studio. |
+| `scripts/` | `export.ts` maakt `exports/` opnieuw (`npm run export`, gebruikt Playwright), `build-studio.mjs` bouwt de studio, `swift-reference.ts` neemt de simulaties op voor de Swift-tests (`npm run swift:reference`). |
 | `src/react/` | `<Dashy state="working" />`, `<DashyBody>` (lichaam zonder gezicht), `useDashyBody`, `useStateDriver`. |
 | `src/driver.ts` | Optioneel: regels die uit gebeurtenissen (taak erbij, taak klaar, deadline dichtbij) een toestand kiezen. Zuiver, geen timers. |
 | `src/ambient.ts`, `perspective.ts`, `timeline.ts`, `definition.ts` | Ambient leven, kopdraai, sequenties, JSON-definitie met validatie. |
@@ -81,9 +81,10 @@ Zonder bundler of eigen bouw: kopieer `src/` naar je project. Alles is TypeScrip
 ## Toestanden
 
 Werk: `idle`, `received`, `working`, `thinking`, `waiting`, `blocked`, `done`.
-Gevoel: `happy`, `sad`, `angry`, `strict`, `dancing`, `sleepy`, en nieuw: `surprised`, `love`, `confused`, `excited`, `scared`, `curious`, `proud`, `dizzy`, `bored`, `wink`, `talking`, `listening`, `shy`.
+Gevoel: `happy`, `sad`, `angry`, `strict`, `dancing`, `sleepy`, en nieuw: `surprised`, `love`, `confused`, `excited`, `scared`, `curious`, `proud`, `dizzy`, `bored`, `wink`, `talking`, `listening`, `shy`, `laughing`, `crying`, `sick`, `cool`, `mischief`, `determined`, `relieved`, `nervous`, `cold`, `hot`, `starstruck`, `gloomy`.
+App-momenten: `nodding`, `searching`, `loading`, `success`, `error`, `idea`.
 
-De oorspronkelijke 13 toestanden zijn ongewijzigd (de exports zijn byte voor byte gelijk gebleven). De nieuwe eigenschappen (gezicht-laag, stijl, definitie v2) zijn er voor web; de Swift-port in `swift/DashyKit` kent de 13 oorspronkelijke toestanden.
+De oorspronkelijke 13 toestanden zijn ongewijzigd (de exports zijn byte voor byte gelijk gebleven). De Swift-port in `swift/DashyKit` kent alle 44 toestanden en komt frame voor frame overeen met TypeScript (golden tests). De gezicht-laag, stijlen en definitie v2 zijn er (nog) alleen voor web.
 
 ## Definitie v2
 

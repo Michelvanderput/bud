@@ -54,6 +54,7 @@ const persist = () => { clearTimeout(persistT); persistT = window.setTimeout(() 
 
 const names = createDashy().states as Record<DashyState, { n: string }>;
 const STATUS: DashyState[] = ['idle', 'received', 'working', 'thinking', 'waiting', 'blocked', 'done'];
+const APP: DashyState[] = ['nodding', 'searching', 'loading', 'success', 'error', 'idea'];
 const isBuiltIn = (k: string): k is DashyState => (STATE_KEYS as readonly string[]).includes(k);
 
 // ---------- small DOM helpers
@@ -130,7 +131,8 @@ function stateButton(key: string, label: string, sub: string) {
 function buildLibrary() {
   const status = $('#states-status'), mood = $('#states-mood'), custom = $('#states-custom');
   status.replaceChildren(...STATUS.map(s => stateButton(s, names[s].n, s)));
-  mood.replaceChildren(...STATE_KEYS.filter(s => !STATUS.includes(s)).map(s => stateButton(s, names[s].n, s)));
+  mood.replaceChildren(...STATE_KEYS.filter(s => !STATUS.includes(s) && !APP.includes(s)).map(s => stateButton(s, names[s].n, s)));
+  $('#states-app').replaceChildren(...APP.map(s => stateButton(s, names[s].n, s)));
   const keys = Object.keys(S.expressions);
   custom.replaceChildren(...keys.map(k => stateButton(k, k, `op ${S.expressions[k].state}`)));
   $('#custom-title').hidden = keys.length === 0;
@@ -381,16 +383,9 @@ function panelExpr() {
       } }, 'Bewaar expressie')), err, savedList),
   ];
 }
-/** The eyes of every state, from core.ts's own table (read through a throwaway look-free step). */
-const BASE_LOOK: Record<DashyState, Required<Look>> = (() => {
-  const T: Record<string, number[]> = { idle: [0, 66, .05, 0, 0, 0, 0], received: [0, 66, .05, 0, 0, 0, 0], working: [-1, 60, .2, 4, 0, 0, 0], thinking: [0, 64, .12, 8, 0, 0, .22],
-    waiting: [2, 72, .08, -14, 0, 0, 0], blocked: [3, 68, .26, -30, 0, 0, 0], done: [0, 62, 0, 0, .42, 7, 0], happy: [0, 68, 0, 0, .26, 6, 0], sad: [3, 54, .4, -16, 0, 0, 0],
-    angry: [-2, 62, .44, 24, 0, 0, 0], strict: [0, 66, .5, 3, 0, 0, 0], dancing: [0, 68, 0, 0, .44, 7, 0], sleepy: [2, 62, .6, -6, 0, 0, 0], surprised: [3, 84, 0, 0, 0, 0, 0],
-    love: [-1, 74, 0, 0, .42, -4, 0], confused: [0, 64, .14, -10, 0, -5, .35], excited: [1, 74, 0, 0, .3, 3, 0], scared: [-3, 74, .06, -22, 0, 0, 0], curious: [0, 70, .04, 0, 0, 0, -.3],
-    proud: [0, 62, .4, 7, 0, 0, -.1], dizzy: [0, 62, .1, 0, 0, 0, .2], bored: [1, 58, .52, -4, 0, 0, 0], wink: [0, 68, 0, 0, .34, 5, .5], talking: [0, 66, .06, 0, 0, 0, 0],
-    listening: [0, 70, 0, -6, 0, 0, 0], shy: [-1, 60, 0, 0, .32, -3, 0] };
-  return Object.fromEntries(Object.entries(T).map(([k, v]) => [k, { sd: v[0], eh: v[1], cover: v[2], lidA: v[3], low: v[4], tilt: v[5], asym: v[6] }])) as Record<DashyState, Required<Look>>;
-})();
+/** The eyes of every state, straight from core.ts's own table. */
+const BASE_LOOK = Object.fromEntries(STATE_KEYS.map(k => { const m = (createDashy().states as Record<string, any>)[k];
+  return [k, { sd: m.sd, eh: m.eh, cover: m.cover, lidA: m.lidA, low: m.low, tilt: m.tilt, asym: m.asym }]; })) as Record<DashyState, Required<Look>>;
 
 // ---------- sequences (the dope sheet)
 

@@ -7,8 +7,10 @@
 import type { DashyState, Geometry } from './core';
 
 export type Effect = 'none' | 'zzz' | 'hearts' | 'sparkles' | 'stars' | 'question' | 'exclaim' | 'sweat' | 'tear'
-  | 'notes' | 'steam' | 'dots' | 'thought' | 'confetti' | 'waves';
-export const EFFECTS: readonly Effect[] = ['none', 'zzz', 'hearts', 'sparkles', 'stars', 'question', 'exclaim', 'sweat', 'tear', 'notes', 'steam', 'dots', 'thought', 'confetti', 'waves'];
+  | 'notes' | 'steam' | 'dots' | 'thought' | 'confetti' | 'waves'
+  | 'sob' | 'snow' | 'flame' | 'rain' | 'bulb' | 'spinner' | 'check' | 'cross' | 'bubbles' | 'bolt';
+export const EFFECTS: readonly Effect[] = ['none', 'zzz', 'hearts', 'sparkles', 'stars', 'question', 'exclaim', 'sweat', 'tear', 'notes', 'steam', 'dots', 'thought', 'confetti', 'waves',
+  'sob', 'snow', 'flame', 'rain', 'bulb', 'spinner', 'check', 'cross', 'bubbles', 'bolt'];
 
 /** What an expression can set beyond the eyes. All optional: what is left out comes from the state. */
 export interface DecorLook {
@@ -32,6 +34,12 @@ export const STATE_DECOR: Record<DashyState, Full> = {
   curious: d(.1, .2, .5, 0, 'none'), proud: d(.6, 0, 1.1, .2, 'sparkles'), dizzy: d(-.1, .3, .7, 0, 'stars'),
   bored: d(-.1, 0, .7, 0, 'dots'), wink: d(.7, 0, 1, .3, 'sparkles'), talking: d(.2, .3, .8, 0, 'none'),
   listening: d(.1, 0, .6, 0, 'waves'), shy: d(.3, 0, .5, 1, 'none'),
+  laughing: d(1, .85, 1.25, .5, 'sparkles'), crying: d(-.9, .45, .9, .2, 'sob'), sick: d(-.35, .1, .7, 0, 'bubbles'),
+  cool: d(.45, 0, .6, 0, 'none'), mischief: d(.75, 0, .75, .15, 'none'), determined: d(-.15, 0, .7, 0, 'bolt'),
+  relieved: d(.4, .1, .9, .15, 'sweat'), nervous: d(-.2, .1, .7, 0, 'sweat'), cold: d(-.3, .15, .6, 0, 'snow'),
+  hot: d(-.1, .35, .8, .7, 'flame'), starstruck: d(.6, .55, .9, .4, 'stars'), nodding: d(.5, 0, .9, .1, 'check'),
+  searching: d(0, .1, .5, 0, 'question'), loading: d(0, 0, .6, 0, 'spinner'), success: d(.9, .3, 1.1, .3, 'check'),
+  error: d(-.4, .2, .8, 0, 'cross'), idea: d(.5, .4, .7, 0, 'bulb'), gloomy: d(-.5, 0, .8, 0, 'rain'),
 };
 
 export interface DecorStyle {
@@ -103,6 +111,21 @@ export function effectAt(fx: Effect, t: number, G?: Geometry): Particle[] {
     case 'thought': { const n = (t % 3000) / 3000; for (let k = 0; k < 3; k++) { const on = smooth((n - k * .18) / .12) * smooth((1 - n) / .1); out.push(P('thought', 220 + k * 16, 62 - k * 14, (.5 + k * .35) * on, 0, on)); } break; }
     case 'confetti': emit(t, 70, 1700, (i, p) => { const s = hash(i), x0 = 40 + s * 220, vy = -1 + hash(i, 1) * .4; const y = 60 + vy * 120 * p + 220 * p * p; return P('confetti', x0 + Math.sin(p * 9 + i) * 10, y, .9, p * 720 * (hash(i, 2) - .5), fade(p, .05, .2), i % 5); }, out); break;
     case 'waves': emit(t, 700, 2100, (i, p) => P('waves', 64 - p * 30, 140, .6 + p * .9, 0, fade(p, .1, .6)), out); break;
+    case 'sob': for (const k of [0, 1]) {
+      const e = G?.eyes[k], ex = e ? e.x : (k ? 34 : -34), ey = e ? e.y + e.eh / 2 : 26;
+      emit(t, 380, 1000, (i, p) => P('tear', 150 + ex * .5 + (k ? 8 : -8) + p * (k ? 14 : -14), 150 + ey * .5 + 4 + p * 60, .7 + p * .3, 0, fade(p, .1, .3)), out, k * 190);
+    } break;
+    case 'snow': emit(t, 260, 2600, (i, p) => P('snow', 30 + hash(i) * 240 + Math.sin(p * 6 + i) * 8, 24 + p * 250, .5 + hash(i, 1) * .6, p * 120, fade(p, .08, .2)), out); break;
+    case 'flame': for (let k = 0; k < 3; k++) { const fl = Math.sin(t / 85 + k * 2.1) * .5 + Math.sin(t / 47 + k) * .5; out.push(P('flame', 112 + k * 38, 38 - (k === 1 ? 8 : 0), (k === 1 ? 1.15 : .9) * (1 + fl * .12), fl * 6, smooth(t / 250), k)); } break;
+    case 'rain': {
+      out.push(P('rain', 150, 26 + Math.sin(t / 900) * 2, 1, 0, smooth(t / 300), 0));
+      emit(t, 110, 520, (i, p) => P('rain', 116 + hash(i) * 68, 40 + p * 70, .8, 0, fade(p, .05, .3) * smooth(t / 400), 1), out); break;
+    }
+    case 'bulb': { const pop = smooth(t / 220); out.push(P('bulb', 238, 50 + Math.sin(t / 500) * 2, pop * (1 + Math.max(0, .25 - t / 1200)), Math.sin(t / 700) * 6, 1, Math.floor(t / 600) % 2)); break; }
+    case 'spinner': out.push(P('spinner', 238, 52, smooth(t / 200), t * .36, 1)); break;
+    case 'check': case 'cross': { const pop = smooth(t / 200); out.push(P(fx, 238, 50, pop * (1 + Math.max(0, .3 - t / 900)), fx === 'cross' && t < 500 ? Math.sin(t / 30) * (1 - t / 500) * 10 : 0, 1)); break; }
+    case 'bubbles': emit(t, 420, 1900, (i, p) => P('bubbles', 226 + hash(i) * 30 + Math.sin(p * 7 + i) * 6, 90 - p * 70, .4 + hash(i, 1) * .5 + p * .3, 0, fade(p, .1, .25)), out); break;
+    case 'bolt': for (const k of [0, 1]) { const on = ((t + k * 700) % 1400) < 160 ? 1 : ((t + k * 700) % 1400) < 320 ? .35 : 0; if (on) out.push(P('bolt', k ? 248 : 52, 56, .9 + (k ? .1 : 0), k ? 12 : -12, on)); } break;
   }
   return out;
 }
@@ -199,6 +222,17 @@ const SHAPES: Record<Particle['kind'], (c: DecorColors, v: number) => string> = 
   thought: c => `<circle r="7" fill="#fff" stroke="${c.glyph}" stroke-width="2"/>`,
   confetti: (_, v) => `<rect x="-3" y="-5" width="6" height="10" rx="1" fill="${CONFETTI[v % CONFETTI.length]}"/>`,
   waves: c => `<path d="M0-12A16 16 0 0 1 0 12" fill="none" stroke="${c.glyph}" stroke-width="3" stroke-linecap="round"/>`,
+  sob: () => `<path d="M0-6C2-3 4-1 4 2A4 4 0 0 1-4 2C-4-1-2-3 0-6Z" fill="#7cc4ff"/>`,
+  snow: () => `<path d="M0-7V7M-6-3.5L6 3.5M-6 3.5L6-3.5" stroke="#9ccfff" stroke-width="2" stroke-linecap="round"/>`,
+  flame: () => `<path d="M0-16C6-8 11-3 9 5A9 9 0 0 1-9 5C-10-1-5-4-3-9C-2-5 0-4 1-5C2-8 1-12 0-16Z" fill="#ff7a1a"/><path d="M0-5C3-1 5 2 4 5A4.5 4.5 0 0 1-4 5C-4 2-2 0 0-5Z" fill="#ffd23f"/>`,
+  rain: (c, v) => v ? `<path d="M0-5V5" stroke="#5aa8f0" stroke-width="2.4" stroke-linecap="round"/>`
+    : `<path d="M-34 6A12 12 0 0 1-24-12A16 16 0 0 1 4-18A13 13 0 0 1 26-8A11 11 0 0 1 32 10H-30A9 9 0 0 1-34 6Z" fill="#c6cfd8" stroke="${c.glyph}" stroke-opacity=".25" stroke-width="1.5"/>`,
+  bulb: (_, v) => `${v ? '<circle cy="-3" r="17" fill="#ffd23f" opacity=".25"/>' : ''}<path d="M-8 4C-12 0-13-5-12-9A12 12 0 0 1 12-9C13-5 12 0 8 4V8H-8Z" fill="#ffd23f" stroke="#c99400" stroke-width="1.5"/><rect x="-6" y="9" width="12" height="5" rx="1.5" fill="#8a96a3"/>`,
+  spinner: c => `<circle r="11" fill="none" stroke="${c.glyph}" stroke-opacity=".18" stroke-width="4"/><path d="M0-11A11 11 0 0 1 11 0" fill="none" stroke="${c.accent}" stroke-width="4" stroke-linecap="round"/>`,
+  check: () => `<circle r="13" fill="#22b573"/><path d="M-6 0L-1.5 5L7-4" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  cross: () => `<circle r="13" fill="#e5484d"/><path d="M-5-5L5 5M5-5L-5 5" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>`,
+  bubbles: () => `<circle r="7" fill="#b6e3a0" stroke="#6fb24f" stroke-width="1.5"/><circle cx="-2.5" cy="-2.5" r="1.8" fill="#fff" opacity=".8"/>`,
+  bolt: () => `<path d="M3-16L-8 2H0L-4 16L9-4H1Z" fill="#ffcf2e" stroke="#c99400" stroke-width="1.2" stroke-linejoin="round"/>`,
 };
 
 /** The effects, in body space, drawn after the body. `dx, dy` moves them with the body (not its rotation). */
