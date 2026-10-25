@@ -1,4 +1,33 @@
+import type { BlinkConfig } from './timeline';
 import type { Geometry } from './core';
+import type { DecorStyle } from './decor';
+
+/** How Dashy looks, beyond colours. Everything optional; the defaults are the original Dashy. */
+export interface Style extends DecorStyle {
+  /** Body corner radius 0..1 (0 = sharp, 0.2 = the square, 1 = circle). Overrides `shape`. */
+  roundness?: number;
+  /** Outline thickness in core units, 0..6. Default 1. */
+  outlineWidth?: number;
+  /** Eye width in core units (16..60). Default 34. */
+  eyeWidth?: number;
+  /** Distance of each eye from the centre (24..46). Default 34. */
+  eyeSpacing?: number;
+  /** Eye height multiplier (0.5..1.4). Default 55/66. */
+  eyeScale?: number;
+  /** Eye corners 0..1: 1 = pill (default), 0 = rectangle. */
+  eyeRoundness?: number;
+  /** A highlight in the eyes, 0..1. Default 0. */
+  shine?: number;
+}
+/** How Dashy moves. */
+export interface Motion {
+  /** Ambient life 0..2. Default 1. */ ambient?: number;
+  /** Head turn 0..2. Default 1. */ perspective?: number;
+  /** Playback speed 0.25..3. Default 1. */ speed?: number;
+  /** Bounciness of the body 0.4..2.5. Default 1. */ bounce?: number;
+  /** Follow the pointer with his eyes. Default true. */ followPointer?: boolean;
+  blink?: BlinkConfig;
+}
 
 const f = (v: number) => v.toFixed(2);
 
@@ -7,6 +36,7 @@ export interface EyeLayout {
   pill: { x: string; y: string; width: string; height: string; rx: string };
   lid: { x: string; y: string; width: string; height: string; transform: string };
   low: { cx: string; cy: string; rx: string; ry: string };
+  shine: { cx: string; cy: string; r: string };
 }
 export interface Layout {
   outlineWidth: string; outlineRx: string; clipRx: string;
@@ -14,10 +44,11 @@ export interface Layout {
 }
 
 /** Geometry -> the exact SVG attribute values. Shared by the live DOM drawing (svg.ts) and the static export (static.ts). */
-export function layout(G: Geometry, small = false): Layout {
+export function layout(G: Geometry, small = false, style: Pick<Style, 'eyeRoundness' | 'shine' | 'outlineWidth'> = {}): Layout {
+  const round = Math.max(0, Math.min(1, style.eyeRoundness ?? 1)), shine = small ? 0 : Math.max(0, Math.min(1, style.shine ?? 0));
   const b = G.body, fc = G.face;
   return {
-    outlineWidth: small ? '8' : '1',
+    outlineWidth: small ? '8' : f(Math.max(0, Math.min(6, style.outlineWidth ?? 1))).replace(/\.00$/, ''),
     outlineRx: f(Math.max(0, G.rx - 0.5)),
     clipRx: f(G.rx),
     body: `translate(${f(b.tx)} ${f(b.ty)}) rotate(${f(b.rot)}) scale(${f(b.sx)} ${f(b.sy)}) translate(-150 -260)`,
@@ -28,8 +59,9 @@ export function layout(G: Geometry, small = false): Layout {
       const lower = e.low > 0.001;
       return {
         group: `translate(${f(e.x)} ${f(e.y)}) rotate(${f(e.tilt)})`,
-        pill: { x: f(-hw), y: f(-eh / 2), width: f(e.ew), height: f(eh), rx: f(Math.min(hw, eh / 2)) },
+        pill: { x: f(-hw), y: f(-eh / 2), width: f(e.ew), height: f(eh), rx: f(Math.min(hw, eh / 2) * round) },
         lid: { x: '-90', y: f(yb - 140), width: '180', height: '140', transform: `rotate(${f(e.lidA)} 0 ${f(yb)})` },
+        shine: shine > 0 ? { cx: f(-e.ew * .2), cy: f(-eh * .24), r: f(Math.min(e.ew, eh) * (.1 + .12 * shine)) } : { cx: '0', cy: '0', r: '0' },
         low: lower ? { cx: '0', cy: f(yt + ry), rx: f(e.ew * 0.95), ry: f(ry) } : { cx: '0', cy: '0', rx: '0', ry: '0' },
       };
     }),

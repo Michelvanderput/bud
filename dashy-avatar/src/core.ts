@@ -4,8 +4,12 @@
  * Coordinate system: 300 x 300 viewBox, body 220 x 220 (40..260), pivot at bottom centre (150, 260).
  */
 export type Status = 'idle' | 'received' | 'working' | 'thinking' | 'waiting' | 'blocked' | 'done';
-export type Mood = 'happy' | 'sad' | 'angry' | 'strict' | 'dancing' | 'sleepy';
+export type Mood = 'happy' | 'sad' | 'angry' | 'strict' | 'dancing' | 'sleepy'
+  | 'surprised' | 'love' | 'confused' | 'excited' | 'scared' | 'curious' | 'proud' | 'dizzy' | 'bored' | 'wink' | 'talking' | 'listening' | 'shy';
 export type DashyState = Status | Mood;
+/** Every state, in display order. The one list the other modules (static, definition, svg) take theirs from. */
+export const STATE_KEYS: readonly DashyState[] = ['idle', 'received', 'working', 'thinking', 'waiting', 'blocked', 'done', 'happy', 'sad', 'angry', 'strict', 'dancing', 'sleepy',
+  'surprised', 'love', 'confused', 'excited', 'scared', 'curious', 'proud', 'dizzy', 'bored', 'wink', 'talking', 'listening', 'shy'];
 export type Shape = 'square' | 'circle';
 export type { Look, BlinkConfig } from './timeline';
 
@@ -20,6 +24,12 @@ export interface DashyOptions {
   perspective?: boolean | number;
   /** Blink timing. Default: every 2.0 to 5.2 s, about 175 ms long. */
   blink?: BlinkConfig;
+  /** Eye width in core units. Default 34. Kept narrow enough that the eyes never touch (at most 2 x eyeSpacing - 22). */
+  eyeWidth?: number;
+  /** Distance from the face centre to each eye. Default 34 (range 24..46). */
+  eyeSpacing?: number;
+  /** Bounciness of the body springs: 1 = default, higher wobbles longer, lower settles quicker (0.4..2.5). */
+  bounce?: number;
 }
 export interface EyeGeometry {
   x: number; y: number; tilt: number; ew: number; eh: number;
@@ -54,6 +64,11 @@ export interface Dashy {
   setAmbient(strength: boolean | number): void;
   setPerspective(strength: boolean | number): void;
   setBlink(cfg: BlinkConfig | null): void;
+  /** Corner radius of the body in core units, 0 (sharp) to 110 (circle). setShape picks 22 or 110. */
+  setCornerRadius(rx: number): void;
+  setEyeWidth(w: number): void;
+  setEyeSpacing(s: number): void;
+  setBounce(b: number): void;
   step(now: number): Geometry;
 }
 
@@ -68,7 +83,7 @@ function ease(x:number){x=clamp(x,0,1);return x*x*(3-2*x)}
 export function createDashy(options: DashyOptions = {}): Dashy {
  var rs:number=options.seed||12345;function R(): number{rs=(rs*1664525+1013904223)>>>0;return rs/4294967296}
  function rnd(a:number,b:number){return a+R()*(b-a)}
- var EW=34,H0=66,SEP=34;
+ var EW=clamp(options.eyeWidth??34,16,60),H0=66,SEP=clamp(options.eyeSpacing??34,24,46);
  // sd = sep delta, eh absolute, cover, lidA (+ = angry slant, - = sad), low, tilt, asym
  var M:Record<string,any>={
   idle:{n:'Idle',sd:0,eh:66,cover:.05,lidA:0,low:0,tilt:0,asym:0},
@@ -83,7 +98,20 @@ export function createDashy(options: DashyOptions = {}): Dashy {
   angry:{n:'Boos',sd:-2,eh:62,cover:.44,lidA:24,low:0,tilt:0,asym:0},
   strict:{n:'Streng',sd:0,eh:66,cover:.5,lidA:3,low:0,tilt:0,asym:0},
   dancing:{n:'Dansen',sd:0,eh:68,cover:0,lidA:0,low:.44,tilt:7,asym:0},
-  sleepy:{n:'Slaperig',sd:2,eh:62,cover:.6,lidA:-6,low:0,tilt:0,asym:0}
+  sleepy:{n:'Slaperig',sd:2,eh:62,cover:.6,lidA:-6,low:0,tilt:0,asym:0},
+  surprised:{n:'Verrast',sd:3,eh:84,cover:0,lidA:0,low:0,tilt:0,asym:0},
+  love:{n:'Verliefd',sd:-1,eh:74,cover:0,lidA:0,low:.42,tilt:-4,asym:0},
+  confused:{n:'Verward',sd:0,eh:64,cover:.14,lidA:-10,low:0,tilt:-5,asym:.35},
+  excited:{n:'Opgewonden',sd:1,eh:74,cover:0,lidA:0,low:.3,tilt:3,asym:0},
+  scared:{n:'Bang',sd:-3,eh:74,cover:.06,lidA:-22,low:0,tilt:0,asym:0},
+  curious:{n:'Nieuwsgierig',sd:0,eh:70,cover:.04,lidA:0,low:0,tilt:0,asym:-.3},
+  proud:{n:'Trots',sd:0,eh:62,cover:.4,lidA:7,low:0,tilt:0,asym:-.1},
+  dizzy:{n:'Duizelig',sd:0,eh:62,cover:.1,lidA:0,low:0,tilt:0,asym:.2},
+  bored:{n:'Verveeld',sd:1,eh:58,cover:.52,lidA:-4,low:0,tilt:0,asym:0},
+  wink:{n:'Knipoog',sd:0,eh:68,cover:0,lidA:0,low:.34,tilt:5,asym:.5},
+  talking:{n:'Praten',sd:0,eh:66,cover:.06,lidA:0,low:0,tilt:0,asym:0},
+  listening:{n:'Luisteren',sd:0,eh:70,cover:0,lidA:-6,low:0,tilt:0,asym:0},
+  shy:{n:'Verlegen',sd:-1,eh:60,cover:0,lidA:0,low:.32,tilt:-3,asym:0}
  };
  var KEYS=['sep','eh','cover','lidA','low','tilt','asym'];
  var P:Record<string,Sp>={};
@@ -91,8 +119,11 @@ export function createDashy(options: DashyOptions = {}): Dashy {
  P.sx=new Sp(1,170,11);P.sy=new Sp(1,170,11);P.rot=new Sp(0,150,13);P.tx=new Sp(0,150,14);P.ty=new Sp(0,140,10);
  P.gx=new Sp(0,140,24);P.gy=new Sp(0,140,24);P.fx=new Sp(0,60,15.5);P.fy=new Sp(0,60,15.5);P.rx=new Sp(22,120,22);
  P.bx=new Sp(0,85,8.5);P.by=new Sp(0,85,8);P.bsx=new Sp(1,95,7.5);P.bsy=new Sp(1,95,7.5);P.brot=new Sp(0,80,7);
+ var BODY=['sx','sy','rot','tx','ty','bx','by','bsx','bsy','brot'],BD:Record<string,number>={};BODY.forEach(function(n:string){BD[n]=P[n].d});
+ function setBounce(b:number){b=clamp(b,.4,2.5);BODY.forEach(function(n:string){P[n].d=BD[n]/b})}
+ if(options.bounce!==undefined)setBounce(options.bounce);
  var st:any={cur:'idle',shape:'square',modeT:0,last:null,acc:0,
-  nextHop:2500,nextStomp:2000,nextBlink:1800,nextWander:0,nextYawn:5000,nextNo:4500,nextCut:5000,nextScan:0,nextPing:3000,nextBurst:2000,nextMicro:0,
+  nextHop:2500,nextStomp:2000,nextBlink:1800,nextWander:0,nextYawn:5000,nextNo:4500,nextCut:5000,nextScan:0,nextPing:3000,nextBurst:2000,nextMicro:0,nextSigh:4000,sighUntil:0,nextPeek:3500,peekUntil:0,
   blinkStart:-1e9,blinkLen:180,pokeUntil:0,yawnUntil:0,cutUntil:0,cutDir:1,noStart:-1e9,pingUntil:0,burstUntil:0,noticeUntil:0,
   ehK:options.eyeScale ?? 55/66,look:null as Look|null,amb:level(options.ambient),persp:level(options.perspective),spring:null as {k:number;d:number}|null,blinkCfg:(options.blink??null) as BlinkConfig|null,aw:null as {eye:number;body:number}|null,lastPtr:-1e9,ptx:0,pty:0,ptxF:0,ptyF:0,gtx:0,gty:0,msx:0,msy:0,pokes:[],revertAt:0,revertTo:null};
  var S=1.01,H=1/120;
@@ -154,6 +185,23 @@ export function createDashy(options: DashyOptions = {}): Dashy {
    sy+=Math.sin(t*1.1)*.03;sx-=Math.sin(t*1.1)*.02;rot=-4+Math.sin(t*.5)*3;ty=8;amp=.2;
    if(now>st.nextYawn){st.yawnUntil=now+1600;st.nextYawn=now+rnd(7000,10000)}
   }
+  else if(cur==='surprised'){ty=-4;sy+=.02;sx-=.015;amp=.7}
+  else if(cur==='love'){var hb=Math.pow(Math.max(0,Math.sin(t*2*Math.PI*1.1)),12);ty=Math.sin(t*1.8)*-3;rot=Math.sin(t*1.2)*3;sy+=hb*.035;sx+=hb*.035}
+  else if(cur==='confused'){rot=Math.sin(t*.45)*7;ty=-1;amp=.8}
+  else if(cur==='excited'){var pe2=t*2*Math.PI*1.6;ty=-Math.abs(Math.sin(pe2))*14+6;rot=Math.sin(pe2)*3;sx+=Math.sin(pe2*2)*.012}
+  else if(cur==='scared'){tx=Math.sin(t*38)*1.4;ty=5;sx-=.03;sy-=.04;rot=Math.sin(t*29)*.6;amp=.9}
+  else if(cur==='curious'){rot=8+Math.sin(t*.7)*2;ty=-3+Math.sin(t*1.3)*-1.5;tx=4}
+  else if(cur==='proud'){ty=-4;sy+=.02;rot=Math.sin(t*.6)*1.2;amp=.8}
+  else if(cur==='dizzy'){rot=Math.sin(t*2.2)*6;tx=Math.sin(t*1.1)*4;ty=Math.sin(t*2.2)*2}
+  else if(cur==='bored'){
+   ty=6;rot=-3+Math.sin(t*.3)*1.5;amp=.7;
+   if(now>st.nextSigh){st.sighUntil=now+1400;st.nextSigh=now+rnd(5000,8000)}
+   if(now<st.sighUntil){var sp2=Math.sin((1-(st.sighUntil-now)/1400)*Math.PI);sy+=sp2*.04;sx-=sp2*.02;ty-=sp2*4}
+  }
+  else if(cur==='wink'){ty=Math.sin(t*2)*-2;rot=4+Math.sin(t*1.4)*1}
+  else if(cur==='talking'){var tk=Math.abs(Math.sin(t*9)*Math.sin(t*2.3));ty=-tk*2.5;rot=Math.sin(t*1.3)*2;sy+=tk*.012}
+  else if(cur==='listening'){rot=6+Math.sin(t*.5);ty=-1+Math.sin(t*1.7)*-1}
+  else if(cur==='shy'){ty=7;sx-=.02;sy-=.03;rot=-4+Math.sin(t*.6);amp=.8}
   var sq=clamp(-P.ty.v*.0007,-.25,.25);sy+=sq;sx-=sq*.7;
   var bc=st.blinkCfg,noBlink=(cur==='sleepy'||cur==='angry')||(bc!==null&&bc.enabled===false),bf=cur==='working'?1.8:1;
   if(now>st.nextBlink&&!noBlink){st.blinkStart=now;st.blinkLen=bc&&bc.durationMs?rnd(bc.durationMs*.86,bc.durationMs*1.14):rnd(150,200);st.nextBlink=now+(R()<.18?330:rnd(bc&&bc.minMs?bc.minMs:2000,bc&&bc.maxMs?bc.maxMs:5200)*bf)}
@@ -166,6 +214,17 @@ export function createDashy(options: DashyOptions = {}): Dashy {
   else if(cur==='thinking'){st.gtx=.6+Math.sin(t*.7)*.3;st.gty=-.8+Math.sin(t*.5)*.1}
   else if(cur==='blocked'){st.gtx=-.6;st.gty=.9}
   else if(cur==='received'){st.gtx=0;st.gty=(now-st.modeT>250)?.8:0}
+  else if(cur==='dizzy'){st.gtx=Math.cos(t*4)*.8;st.gty=Math.sin(t*4)*.6}
+  else if(cur==='confused'){st.gtx=Math.sin(t*.45)*-.5;st.gty=-.55}
+  else if(cur==='proud'){st.gtx=Math.sin(t*.4)*.2;st.gty=-.7}
+  else if(cur==='bored'){st.gtx=-.7+Math.sin(t*.2)*.3;st.gty=.45}
+  else if(cur==='listening'){st.gtx=-.55+Math.sin(t*.6)*.1;st.gty=-.1}
+  else if(cur==='scared'){if(now>st.nextScan){st.gtx=[-1,-.7,.7,1][Math.floor(R()*4)];st.gty=rnd(-.3,.3);st.nextScan=now+rnd(400,900)}}
+  else if(cur==='shy'){
+   if(now>st.nextPeek){st.peekUntil=now+800;st.nextPeek=now+rnd(3500,6000)}
+   if(now<st.peekUntil){st.gtx=ptrRecent?st.ptxF*.6:0;st.gty=ptrRecent?st.ptyF*.6:0}else{st.gtx=-.6;st.gty=.75}
+  }
+  else if(cur==='curious'||cur==='surprised'||cur==='talking'){if(ptrRecent){st.gtx=st.ptxF;st.gty=st.ptyF}else{st.gtx=cur==='curious'?.45+Math.sin(t*.8)*.2:0;st.gty=cur==='curious'?-.1:cur==='surprised'?-.2:.05}}
   else if(cur==='waiting'||cur==='done'){if(ptrRecent){st.gtx=st.ptxF;st.gty=st.ptyF}else{st.gtx=0;st.gty=.1}}
   else{
    if(ptrRecent){st.gtx=st.ptxF;st.gty=st.ptyF}
@@ -176,14 +235,14 @@ export function createDashy(options: DashyOptions = {}): Dashy {
    }
   }
   if(now>st.nextMicro){st.msx=rnd(-.06,.06);st.msy=rnd(-.05,.05);st.nextMicro=now+rnd(300,900)}
-  var calm=(cur!=='working'&&cur!=='dancing'&&cur!=='angry'),fast=cur==='working';
+  var calm=(cur!=='working'&&cur!=='dancing'&&cur!=='angry'&&cur!=='excited'&&cur!=='scared'&&cur!=='dizzy'),fast=cur==='working';
   P.gx.k=fast?650:140;P.gx.d=fast?50:24;P.gy.k=P.gx.k;P.gy.d=P.gx.d;
   P.gx.t=(st.gtx+(calm?st.msx:0))*14*amp;P.gy.t=(st.gty+(calm?st.msy:0))*9*amp;
   P.fx.t=st.gtx*7*amp;P.fy.t=st.gty*4*amp;
   T.eh*=st.ehK;
   KEYS.forEach(function(n:string){P[n].t=T[n];if(st.spring){P[n].k=st.spring.k;P[n].d=st.spring.d}});
   P.sx.t=sx;P.sy.t=sy;P.rot.t=rot;P.tx.t=tx;P.ty.t=ty;
-  var gxn=clamp(P.gx.x/14,-1,1),gyn=clamp(P.gy.x/9,-1,1);
+  var gxn=clamp(P.gx.x/14,-1,1),gyn=clamp(P.gy.x/9,-1,1),EWs=Math.min(EW,2*SEP-22);
   P.bx.t=P.tx.x*.6+gxn*5;P.by.t=P.ty.x*.6+gyn*2;
   P.bsx.t=1+(P.sx.x-1)*1.1;P.bsy.t=1+(P.sy.x-1)*1.1;P.brot.t=P.rot.x*.6+gxn*2.5;
   st.acc+=dt;var steps=0;
@@ -197,7 +256,7 @@ export function createDashy(options: DashyOptions = {}): Dashy {
   for(var i=0;i<2;i++){
    var gs=i===0?-1:1,px=i===0?-1:1,sg=i===0?1:-1;
    var side=1+gxn*gs*.06,pe=st.persp>0?eyePerspective(gxn,gyn,px*P.sep.x,st.persp):null;
-   var eh=Math.max(2,P.eh.x*(1-.9*blink)*(pe?pe.fh:side)),ew=EW*(pe?pe.fw:1+gxn*gs*.03);
+   var eh=Math.max(2,P.eh.x*(1-.9*blink)*(pe?pe.fh:side)),ew=EWs*(pe?pe.fw:1+gxn*gs*.03);
    var cov=clamp(P.cover.x+(i===0?P.asym.x:-P.asym.x*.5),0,1);
    G.eyes.push({x:px*P.sep.x+P.gx.x+folx,y:P.gy.x*.6+fol-cov*eh*.22,tilt:P.tilt.x,ew:ew,eh:eh,cov:cov,lidA:sg*P.lidA.x,low:P.low.x,blink:blink});
   }
@@ -216,6 +275,7 @@ export function createDashy(options: DashyOptions = {}): Dashy {
   setState:(k:DashyState,now:number)=>{if(!(k in M))throw new Error('Unknown state: '+k);setMode(k,now)},
   setShape:(s:Shape)=>setShape(s),setEyeScale:setRatio,poke,pointer,step,
   setLook:(look:Look|null,spring?:{k:number;d:number})=>{st.look=look;st.spring=spring??null;if(!spring)KEYS.forEach(function(n:string){P[n].k=220;P[n].d=26})},
+  setCornerRadius:(rx:number)=>{P.rx.t=clamp(rx,0,110)},setEyeWidth:(w:number)=>{EW=clamp(w,16,60)},setEyeSpacing:(v:number)=>{SEP=clamp(v,24,46)},setBounce,
   setAmbient:(v:boolean|number)=>{st.amb=level(v)},setPerspective:(v:boolean|number)=>{st.persp=level(v)},setBlink:(c:BlinkConfig|null)=>{st.blinkCfg=c}
  };
 }

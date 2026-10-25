@@ -34,7 +34,7 @@ describe('mountDashy with a definition', () => {
     h.destroy();
   });
   it('throws on an invalid definition and names the first problem', () => {
-    expect(() => mountDashy(host(), { definition: { ...definition, schemaVersion: 2 } })).toThrow(/\/schemaVersion/);
+    expect(() => mountDashy(host(), { definition: { ...definition, schemaVersion: 3 } })).toThrow(/\/schemaVersion/);
   });
   it('plays a once-sequence, reports its end and holds the last expression', () => {
     const el = host(), ended = vi.fn(), h = mountDashy(el, { definition, onSequenceEnd: ended, reducedMotion: false });

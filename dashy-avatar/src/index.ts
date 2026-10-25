@@ -1,6 +1,6 @@
-export { createDashy } from './core';
+export { createDashy, STATE_KEYS } from './core';
 export type { Dashy, DashyOptions, DashyState, EyeGeometry, Geometry, Mood, Shape, Status } from './core';
-export { mountDashy } from './svg';
+export { DEFAULT_LABELS, mountDashy } from './svg';
 export type { DashyHandle, MountOptions, SnapshotOptions } from './svg';
 export { AMBIENT_WEIGHTS, ambientAt } from './ambient';
 export { eyePerspective } from './perspective';
@@ -14,7 +14,9 @@ export { DEFAULT_CONFIG, RULES, initialDriverState, nextWakeAt, reduce, resolve 
 export type { DriverConfig, DriverEvent, DriverState, Resolution, RuleName } from './driver';
 export { smallGeometry, SMALL_MAX_PX } from './small';
 export type { Variant } from './small';
-export { ALL_STATES, renderSvg, settledGeometry, stillGeometry } from './static';
-export type { StaticOptions } from './static';
+export { ALL_STATES, applyStyle, recordFrames, renderAnimatedSvg, renderSvg, settledFrame, settledGeometry, stillGeometry } from './static';
+export type { Frame, RecordOptions, StaticOptions } from './static';
+export { DECOR_RANGE, EFFECTS, STATE_DECOR, createDecor, effectAt, faceDecorSvg, particlesSvg, shadowSvg } from './decor';
+export type { Blush, Decor, DecorColors, DecorLook, DecorPlayer, DecorStyle, Effect, Mouth, Particle } from './decor';
 export { faceMotion } from './render';
-export type { FaceMotion, FaceMotionOptions } from './render';
+export type { FaceMotion, FaceMotionOptions, Motion, Style } from './render';

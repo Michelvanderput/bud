@@ -1,8 +1,9 @@
-import { faceMotion, layout, type FaceMotionOptions } from './render';
+import { faceMotion, layout, type FaceMotionOptions, type Motion, type Style } from './render';
+import { createDecor, faceDecorSvg, particlesSvg, shadowSvg, type Decor, type DecorLook } from './decor';
 import { smallGeometry, SMALL_MAX_PX, type Variant } from './small';
 import { DEFAULT_COLORS, validateDefinition, isBuiltInState, type Colors, type DashyDefinition } from './definition';
-import { createSequencePlayer, springFor, type Expression, type Sequence, type SequencePlayer } from './timeline';
-import { renderSvg, stillGeometry, type StaticOptions } from './static';
+import { createSequencePlayer, springFor, type Expression, type Look, type Sequence, type SequencePlayer } from './timeline';
+import { applyStyle, renderSvg, stillGeometry, type StaticOptions } from './static';
 import { renderPng } from './photo';
 import { createDashy, type Dashy, type DashyOptions, type DashyState, type Geometry, type Shape } from './core';
 
@@ -31,6 +32,12 @@ export interface MountOptions extends DashyOptions {
   perspective?: boolean | number;
   /** Called when a `once` sequence has played its last step (he then holds that expression until `stop()`). */
   onSequenceEnd?: (key: string) => void;
+  /** Body corners, eyes, mouth, blush, effects, shadow. Overrides the definition's style. */
+  style?: Style;
+  /** Ambient, head turn, speed, bounce, pointer, blink. Overrides the definition's motion (and `ambient`/`perspective`). */
+  motion?: Motion;
+  /** Start talking (the mouth moves, when it is shown). */
+  talking?: boolean;
 }
 export interface SnapshotOptions extends Omit<StaticOptions, 'variant'> {
   format?: 'svg' | 'png';
@@ -54,6 +61,17 @@ export interface DashyHandle {
   /** Show one named expression (custom, from the definition) or built-in state, and keep it. Returns false when unknown. */
   express(key: string): boolean;
   setColors(c: Partial<Colors>): void;
+  /** Change the look live (merged with what is set). */
+  setStyle(s: Partial<Style>): void;
+  /** Change the motion live (merged with what is set). */
+  setMotion(m: Partial<Motion>): void;
+  /** Make the mouth talk, whatever the state: for speech or a voice assistant. */
+  setTalking(on: boolean): void;
+  /** Show a custom expression without a definition: eyes (look) and/or decor. null = the state's own. */
+  setLook(look: Look | null, decor?: DecorLook | null): void;
+  /** The style and motion in use right now. */
+  getStyle(): Style;
+  getMotion(): Motion;
   /** A still of what is on screen right now. SVG as text, PNG as a Blob. */
   snapshot(o?: SnapshotOptions): Promise<string | Blob>;
   destroy(): void;
@@ -65,6 +83,9 @@ export const DEFAULT_LABELS: Record<DashyState, string> = {
   thinking: 'Dashy denkt na', waiting: 'Dashy wacht op jou', blocked: 'Dashy zit vast en heeft hulp nodig',
   done: 'Dashy is klaar', happy: 'Dashy is blij', sad: 'Dashy is sip', angry: 'Dashy is boos',
   strict: 'Dashy is streng', dancing: 'Dashy danst', sleepy: 'Dashy is slaperig',
+  surprised: 'Dashy is verrast', love: 'Dashy is verliefd', confused: 'Dashy snapt het niet', excited: 'Dashy is door het dolle heen',
+  scared: 'Dashy is bang', curious: 'Dashy is nieuwsgierig', proud: 'Dashy is trots', dizzy: 'Dashy is duizelig',
+  bored: 'Dashy verveelt zich', wink: 'Dashy knipoogt', talking: 'Dashy praat', listening: 'Dashy luistert', shy: 'Dashy is verlegen',
 };
 let uid = 0;
 const f = (v: number) => v.toFixed(2);
@@ -78,19 +99,26 @@ export function mountDashy(container: HTMLElement, opts: MountOptions = {}): Das
     def = v.value;
   }
   let colors: Colors = { ...DEFAULT_COLORS };
-  const dashy = createDashy({ seed: opts.seed ?? Math.floor(Math.random() * 1e6) + 1, eyeScale: opts.eyeScale ?? def?.eyeScale,
-    ambient: opts.ambient ?? true, perspective: opts.perspective ?? true });
+  let style: Style = { ...def?.style, ...opts.style };
+  let motion: Motion = { ambient: typeof opts.ambient === 'number' ? opts.ambient : opts.ambient === false ? 0 : 1,
+    perspective: typeof opts.perspective === 'number' ? opts.perspective : opts.perspective === false ? 0 : 1, ...def?.motion, ...opts.motion };
+  const dashy = createDashy({ seed: opts.seed ?? Math.floor(Math.random() * 1e6) + 1, eyeScale: style.eyeScale ?? opts.eyeScale ?? def?.eyeScale,
+    ambient: motion.ambient, perspective: motion.perspective, bounce: motion.bounce, blink: motion.blink, eyeWidth: style.eyeWidth, eyeSpacing: style.eyeSpacing });
+  const decor = createDecor(style);
+  if (opts.talking) decor.setTalking(true);
+  let lastD: Decor | null = null;
   const labels = { ...DEFAULT_LABELS, ...opts.labels };
   const reduced = () => opts.reducedMotion ?? (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   const bodyMode = !!opts.body;
   const maskDefs = (['L', 'R'] as const).map(s => `<mask id="${id}m${s}" maskUnits="userSpaceOnUse" x="-120" y="-120" width="240" height="240"><rect fill="#fff"/><rect fill="#000"/><ellipse fill="#000"/></mask>`).join('');
-  const eyeRects = (['L', 'R'] as const).map(s => `<g class="eye${s}"><rect x="-80" y="-100" width="160" height="200" fill="#101214" mask="url(#${id}m${s})"/></g>`).join('');
+  const eyeRects = (['L', 'R'] as const).map(s => `<g class="eye${s}"><rect x="-80" y="-100" width="160" height="200" fill="#101214" mask="url(#${id}m${s})"/><circle class="shine" r="0" fill="#fff" mask="url(#${id}m${s})"/></g>`).join('');
   container.insertAdjacentHTML('beforeend', bodyMode ? `
 <svg viewBox="0 0 300 300" role="img" style="position:absolute;inset:0;display:block;width:100%;height:100%;overflow:visible;pointer-events:none;shape-rendering:geometricPrecision">
   <title></title>
   <defs>${maskDefs}</defs>
-  <g class="face">${eyeRects}</g>
+  <g class="face"><g class="fdecor"></g>${eyeRects}</g>
+  <g class="fx"></g>
 </svg>` : `
 <svg viewBox="0 0 300 300" role="img" style="display:block;width:100%;height:100%;overflow:visible;shape-rendering:geometricPrecision;touch-action:manipulation">
   <title></title>
@@ -98,10 +126,12 @@ export function mountDashy(container: HTMLElement, opts: MountOptions = {}): Das
     <clipPath id="${id}c"><rect x="40" y="40" width="220" height="220" rx="22"/></clipPath>
     ${maskDefs}
   </defs>
+  <g class="shadow"></g>
   <g class="body">
     <rect class="outline" x="40.5" y="40.5" width="219" height="219" rx="22" fill="#fff" stroke="#c9c9c4" stroke-width="1"/>
-    <g clip-path="url(#${id}c)"><g class="face">${eyeRects}</g></g>
+    <g clip-path="url(#${id}c)"><g class="face"><g class="fdecor"></g>${eyeRects}</g></g>
   </g>
+  <g class="fx"></g>
 </svg>`);
   const svg = container.querySelector<SVGSVGElement>('svg:last-of-type')!;
   const q = <T extends Element>(sel: string) => svg.querySelector<T>(sel)!;
@@ -112,12 +142,14 @@ export function mountDashy(container: HTMLElement, opts: MountOptions = {}): Das
   const eyes = (['L', 'R'] as const).map(s => {
     const m = svg.querySelector(`#${id}m${s}`)!;
     const [pill, lid] = Array.from(m.querySelectorAll('rect')) as SVGRectElement[];
-    return { g: q<SVGGElement>(`.eye${s}`), pill, lid, low: m.querySelector('ellipse')! };
+    return { g: q<SVGGElement>(`.eye${s}`), pill, lid, low: m.querySelector('ellipse')!, shine: q<SVGCircleElement>(`.eye${s} .shine`) };
   });
+  const fdecor = q<SVGGElement>('.fdecor'), fxG = q<SVGGElement>('.fx'), shadowG = svg.querySelector<SVGGElement>('.shadow');
+  const html = (el: Element | null, v: string) => { if (el && (el as any)._h !== v) { (el as any)._h = v; el.innerHTML = v; } };
 
   const COLOR = /^(?:#[0-9a-f]{3,8}|[a-z]+|(?:rgb|hsl)a?\([0-9 ,.%/-]+\))$/i;
   function applyColors(c: Partial<Colors>) {
-    for (const [k, v] of Object.entries(c)) if (v !== undefined && !COLOR.test(v)) throw new Error(`Invalid colour for ${k}: ${v}`);
+    for (const [k, v] of Object.entries(c)) if (v !== undefined && (typeof v !== 'string' || !COLOR.test(v))) throw new Error(`Invalid colour for ${k}: ${v}`);
     colors = { ...colors, ...c };
     eyes.forEach(e => e.g.querySelector('rect')!.setAttribute('fill', colors.eyes));
     if (outline) { outline.setAttribute('fill', colors.body); outline.setAttribute('stroke', colors.outline); }
@@ -135,9 +167,15 @@ export function mountDashy(container: HTMLElement, opts: MountOptions = {}): Das
     if (!W || !H) { W = H = 220; u = 1; } else u = Math.min(W, H) / 220;
     svg.setAttribute('viewBox', `${f(150 - W / (2 * u))} ${f(150 - H / (2 * u))} ${f(W / u)} ${f(H / u)}`);
   }
-  function draw(G0: Geometry) {
+  function draw(G0: Geometry, t: number) {
     lastG = G0;
-    const L = layout(small && !bodyMode ? smallGeometry(G0) : G0, small && !bodyMode);
+    const D = decor.step(G0, t); lastD = D;
+    const tiny = small && !bodyMode;
+    const L = layout(tiny ? smallGeometry(G0) : G0, tiny, style);
+    const dc = { mouth: colors.mouth, blush: colors.blush, accent: colors.accent, glyph: colors.eyes };
+    html(fdecor, tiny ? '' : faceDecorSvg(D, dc));
+    html(fxG, tiny ? '' : particlesSvg(D, dc, bodyMode ? 0 : G0.body.tx - 150, bodyMode ? 0 : G0.body.ty - 260));
+    html(shadowG, tiny ? '' : shadowSvg(D, dc));
     if (!bodyMode) {
       outline!.setAttribute('stroke-width', L.outlineWidth); outline!.setAttribute('rx', L.outlineRx); clip!.setAttribute('rx', L.clipRx);
       body!.setAttribute('transform', L.body);
@@ -146,20 +184,24 @@ export function mountDashy(container: HTMLElement, opts: MountOptions = {}): Das
     else face.setAttribute('transform', L.face);
     L.eyes.forEach((e, i) => {
       const E = eyes[i];
-      E.g.setAttribute('transform', e.group); set(E.pill, e.pill); set(E.lid, e.lid); set(E.low, e.low);
+      E.g.setAttribute('transform', e.group); set(E.pill, e.pill); set(E.lid, e.lid); set(E.low, e.low); set(E.shine, e.shine);
     });
   }
 
   const pickVariant = () => { if (bodyMode) return; if (opts.variant === 'auto' || opts.variant === undefined) small = svg.getBoundingClientRect().width > 0 && svg.getBoundingClientRect().width <= SMALL_MAX_PX; };
   let raf = 0, destroyed = false, offscreen = false;
-  const now = () => performance.now();
+  // Virtual clock, so playback speed can change without a jump: real time since the last speed change, times the speed.
+  let vBase = performance.now(), rBase = vBase, speed = Math.max(.25, Math.min(3, motion.speed ?? 1));
+  const toV = (real: number) => vBase + (real - rBase) * speed;
+  const now = () => toV(performance.now());
+  const setSpeed = (sp: number) => { const r = performance.now(); vBase = toV(r); rBase = r; speed = Math.max(.25, Math.min(3, sp)); };
   const setTitle = () => { title.textContent = labels[dashy.getState()]; };
   // No frames while the window is hidden or the avatar is scrolled out of view.
   const paused = () => offscreen || (typeof document !== 'undefined' && document.hidden);
   function settleAndDraw() { // reduced motion: simulate ~1.5s instantly, draw one still frame
     let t = now(); let G!: Geometry;
     for (let i = 0; i < 90; i++) { t += 16.7; G = dashy.step(t); }
-    draw(G);
+    draw(G, t);
   }
   const ownExpr = (key: string): Expression | undefined => (def && Object.prototype.hasOwnProperty.call(def.expressions, key) ? def.expressions[key] : undefined);
   /** Shows one expression: a custom one from the definition (state and/or look), or a built-in state by name. */
@@ -169,6 +211,7 @@ export function mountDashy(container: HTMLElement, opts: MountOptions = {}): Das
     const target = ex ? ex.state : (key as DashyState);
     if (target && target !== dashy.getState()) dashy.setState(target, now());
     dashy.setLook(ex?.look ?? null, spring);
+    decor.setLook((ex as { decor?: DecorLook } | undefined)?.decor ?? null);
     setTitle();
     return true;
   }
@@ -177,26 +220,28 @@ export function mountDashy(container: HTMLElement, opts: MountOptions = {}): Das
     if (r.changed) applyExpression(r.step.expression, springFor(r.step.transitionMs, r.step.ease));
     if (r.done) { const k = seqKey!; player = null; seqKey = null; opts.onSequenceEnd?.(k); }
   }
-  function loop(t: number) {
+  function loop(rt: number) {
     if (destroyed) return;
+    const t = toV(rt);
     if (player) tickSequence(t);
     const G = dashy.step(t);
-    draw(G);
+    draw(G, t);
     if (title.textContent !== labels[G.cur]) setTitle(); // keeps the label right when core moves on by itself (received -> working, done -> idle)
     raf = requestAnimationFrame(loop);
   }
   function applyMotionPreference() {
     cancelAnimationFrame(raf); raf = 0;
-    dashy.setAmbient(reduced() ? 0 : opts.ambient ?? true);
+    dashy.setAmbient(reduced() ? 0 : motion.ambient ?? 1);
     if (reduced()) { settleAndDraw(); setTitle(); } else if (!paused()) raf = requestAnimationFrame(loop);
   }
 
   if (opts.shape ?? def?.shape) dashy.setShape((opts.shape ?? def?.shape)!);
+  if (style.roundness !== undefined) dashy.setCornerRadius(style.roundness * 110);
   if (opts.initialState) dashy.setState(opts.initialState, now());
   setTitle();
 
   const onMove = (e: PointerEvent) => {
-    if (reduced()) return;
+    if (reduced() || motion.followPointer === false) return;
     const r = svg.getBoundingClientRect();
     dashy.pointer((e.clientX - (r.left + r.width / 2)) / (r.width / 2), (e.clientY - (r.top + r.height / 2)) / (r.height / 2), now());
   };
@@ -229,20 +274,39 @@ export function mountDashy(container: HTMLElement, opts: MountOptions = {}): Das
       if (!def || !Object.prototype.hasOwnProperty.call(def.sequences, key)) return false;
       const sq: Sequence = def.sequences[key];
       seqKey = key; player = createSequencePlayer(sq); player.start(now());
-      dashy.setBlink(sq.blink ?? null);
+      dashy.setBlink(sq.blink ?? motion.blink ?? null);
       if (reduced()) { // no motion: show the end of a once-sequence, the first step of the others, as one still
         const step = sq.mode === 'once' ? sq.steps[sq.steps.length - 1] : sq.steps[0];
         applyExpression(step.expression); player = null; seqKey = null; settleAndDraw();
       } else if (!raf && !paused()) raf = requestAnimationFrame(loop);
       return true;
     },
-    stop() { player = null; seqKey = null; dashy.setBlink(null); dashy.setLook(null); if (reduced()) settleAndDraw(); },
+    stop() { player = null; seqKey = null; dashy.setBlink(motion.blink ?? null); dashy.setLook(null); decor.setLook(null); if (reduced()) settleAndDraw(); },
     express(key) { player = null; seqKey = null; const ok = applyExpression(key); if (ok && reduced()) settleAndDraw(); return ok; },
-    setColors: applyColors,
+    setColors(c) { applyColors(c); if (reduced()) settleAndDraw(); },
+    setStyle(s) {
+      style = { ...style, ...s };
+      applyStyle(dashy, s);
+      if (s.roundness === undefined && 'roundness' in s) dashy.setShape(opts.shape ?? def?.shape ?? 'square');
+      decor.setStyle(s);
+      if (reduced()) settleAndDraw();
+    },
+    setMotion(m) {
+      motion = { ...motion, ...m };
+      if (m.speed !== undefined) setSpeed(m.speed);
+      if (m.perspective !== undefined) dashy.setPerspective(m.perspective);
+      if (m.bounce !== undefined) dashy.setBounce(m.bounce);
+      if ('blink' in m && !player) dashy.setBlink(m.blink ?? null);
+      if (m.ambient !== undefined) dashy.setAmbient(reduced() ? 0 : m.ambient);
+    },
+    setTalking(on) { decor.setTalking(on); },
+    setLook(look, dl) { player = null; seqKey = null; dashy.setLook(look); decor.setLook(dl ?? null); if (reduced()) settleAndDraw(); },
+    getStyle: () => ({ ...style }),
+    getMotion: () => ({ ...motion }),
     async snapshot(o = {}) {
       const { format = 'svg', size = 512, still = false, ...rest } = o;
       if (!lastG) throw new Error('Nothing drawn yet');
-      const svgText = renderSvg(still ? stillGeometry(lastG) : lastG, { variant: small ? 'small' : 'full', colors, idPrefix: id + 's', ...rest });
+      const svgText = renderSvg(still ? stillGeometry(lastG) : lastG, { variant: small ? 'small' : 'full', colors, idPrefix: id + 's', style, decor: lastD && !still ? lastD : lastD ? { ...lastD, particles: [] } : undefined, ...rest });
       return format === 'png' ? renderPng(svgText, size) : svgText;
     },
     destroy() {

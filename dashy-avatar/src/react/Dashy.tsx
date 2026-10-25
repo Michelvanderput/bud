@@ -24,6 +24,12 @@ export interface DashyProps {
   /** Ambient life and head turn, both default on. */
   ambient?: boolean | number;
   perspective?: boolean | number;
+  /** Body corners, eyes, mouth, blush, effects, shadow. Changes apply live. */
+  appearance?: MountOptions['style'];
+  /** Speed, bounce, ambient, head turn, pointer, blink. Changes apply live. */
+  motion?: MountOptions['motion'];
+  /** Move the mouth as if speaking (shown when style.mouth is on). */
+  talking?: boolean;
   /** Seed for blink timing and glances. Read when Dashy mounts. */
   seed?: number;
   className?: string;
@@ -33,16 +39,16 @@ export interface DashyProps {
 const SR_ONLY: CSSProperties = { position: 'absolute', width: 1, height: 1, margin: -1, padding: 0, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0 };
 
 /** Dashy as a React component. All motion comes from core.ts; this only mounts it and passes props through. */
-export function Dashy({ state = 'idle', shape = 'square', size = 96, labels, announce = false, variant = 'auto', reducedMotion, seed, definition, sequence, colors, ambient, perspective, className, style }: DashyProps) {
+export function Dashy({ state = 'idle', shape = 'square', size = 96, labels, announce = false, variant = 'auto', reducedMotion, seed, definition, sequence, colors, ambient, perspective, appearance: look, motion, talking, className, style }: DashyProps) {
   const host = useRef<HTMLDivElement>(null);
   const handle = useRef<DashyHandle | null>(null);
-  const latest = useRef({ state, shape, labels, definition, colors, sequence });
-  latest.current = { state, shape, labels, definition, colors, sequence };
+  const latest = useRef({ state, shape, labels, definition, colors, sequence, look, motion, talking });
+  latest.current = { state, shape, labels, definition, colors, sequence, look, motion, talking };
 
   // Mount once (and again only if reducedMotion or seed change). labels are read from `latest`, so an inline object does not remount.
   useEffect(() => {
-    const { state: s0, shape: sh0, labels: l0, definition: d0, colors: c0, sequence: q0 } = latest.current;
-    const h = mountDashy(host.current!, { shape: sh0, labels: l0, definition: d0, colors: c0, initialState: s0, variant, reducedMotion, seed, ambient, perspective });
+    const { state: s0, shape: sh0, labels: l0, definition: d0, colors: c0, sequence: q0, look: st0, motion: m0, talking: t0 } = latest.current;
+    const h = mountDashy(host.current!, { shape: sh0, labels: l0, definition: d0, colors: c0, initialState: s0, variant, reducedMotion, seed, ambient, perspective, style: st0, motion: m0, talking: t0 });
     handle.current = h;
     if (q0) h.play(q0);
     return () => { h.destroy(); handle.current = null; };
@@ -51,7 +57,10 @@ export function Dashy({ state = 'idle', shape = 'square', size = 96, labels, ann
   useEffect(() => { const h = handle.current; if (h && h.getState() !== state) h.setState(state); }, [state]);
   useEffect(() => { handle.current?.setShape(shape); }, [shape]);
   useEffect(() => { const h = handle.current; if (!h) return; if (sequence) h.play(sequence); else h.stop(); }, [sequence]);
-  useEffect(() => { if (colors) handle.current?.setColors(colors); }, [colors?.body, colors?.eyes, colors?.outline]);
+  useEffect(() => { if (colors) handle.current?.setColors(colors); }, [colors?.body, colors?.eyes, colors?.outline, colors?.blush, colors?.mouth, colors?.accent]);
+  useEffect(() => { if (look) handle.current?.setStyle(look); }, [JSON.stringify(look)]);
+  useEffect(() => { if (motion) handle.current?.setMotion(motion); }, [JSON.stringify(motion)]);
+  useEffect(() => { handle.current?.setTalking(!!talking); }, [talking]);
 
   const dim = typeof size === 'number' ? `${size}px` : size;
   const text = { ...DEFAULT_LABELS, ...labels }[state];

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createDashy, type DashyState, type Geometry, type Shape } from '../src/core';
+import { createDashy, STATE_KEYS, type DashyState, type Geometry, type Shape } from '../src/core';
 import { smallGeometry } from '../src/small';
 
-const STATES: DashyState[] = ['idle','received','working','thinking','waiting','blocked','done','happy','sad','angry','strict','dancing','sleepy'];
+const STATES: DashyState[] = [...STATE_KEYS];
 const rot = (p: number[], deg: number) => { const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a); return [p[0]*c - p[1]*s, p[0]*s + p[1]*c]; };
 const corners = (e: Geometry['eyes'][number]) => [[-e.ew/2,-e.eh/2],[e.ew/2,-e.eh/2],[e.ew/2,e.eh/2],[-e.ew/2,e.eh/2]].map(p => { const r = rot(p, e.tilt); return [r[0]+e.x, r[1]+e.y]; });
 const toFace = (G: Geometry, p: number[]) => { const f = G.face; const q = rot([p[0]*f.sx, p[1]*f.sy], f.rot); return [q[0]+f.tx, q[1]+f.ty]; };

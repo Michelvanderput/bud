@@ -18,6 +18,9 @@ export const AMBIENT_WEIGHTS: Record<DashyState, AmbientWeights> = {
   idle: { eye: 1, body: 1 }, thinking: { eye: .5, body: .8 }, waiting: { eye: 1, body: .8 }, happy: { eye: .8, body: .6 },
   done: { eye: .6, body: .6 }, sad: { eye: .4, body: 1 }, sleepy: { eye: 0, body: 1.2 }, strict: { eye: .25, body: 0 },
   received: { eye: 0, body: 0 }, working: { eye: 0, body: 0 }, blocked: { eye: 0, body: 0 }, angry: { eye: 0, body: 0 }, dancing: { eye: 0, body: 0 },
+  surprised: { eye: .3, body: .4 }, love: { eye: .6, body: .8 }, confused: { eye: .5, body: .6 }, excited: { eye: 0, body: 0 }, scared: { eye: 0, body: 0 },
+  curious: { eye: .8, body: .6 }, proud: { eye: .4, body: .6 }, dizzy: { eye: 0, body: 0 }, bored: { eye: .4, body: 1 }, wink: { eye: .6, body: .6 },
+  talking: { eye: .5, body: .3 }, listening: { eye: .6, body: .8 }, shy: { eye: .5, body: .8 },
 };
 
 const smooth = (x: number) => x * x * (3 - 2 * x);
